@@ -185,16 +185,24 @@ const clusters=[
  {id:'repo',label:'Repo',x:.72,y:.75,hue:198,base:35,cap:27,scale:16,usage:0,recent:.03,spin:-.06},
  {id:'test',label:'Test',x:.91,y:.70,hue:167,base:31,cap:21,scale:11,usage:0,recent:.03,spin:-.05}
 ];
+const materialRecipes={
+ orbit:{visible:['skill'],positions:{skill:[.50,.52]},keep:['SKILL']},
+ absorb:{visible:['agent','memory','context'],positions:{agent:[.20,.58],memory:[.50,.34],context:[.76,.54]},keep:['CONTEXT','MEMORY']},
+ halo:{visible:['context'],positions:{context:[.50,.52]},keep:['CONTEXT']},
+ burst:{visible:['tool','repo'],positions:{tool:[.43,.52],repo:[.74,.55]},keep:['SEARCH','RESULT','READ']},
+ beam:{visible:['tool','mcp'],positions:{tool:[.24,.56],mcp:[.76,.43]},keep:['MCP','RESULT','CALL','TOOL']}
+};
 const initialUsage=Object.fromEntries(clusters.map(c=>[c.id,c.usage]));
 function cluster(id){return clusters.find(c=>c.id===id)}
-function pos(c,w,h){return{x:c.x*w,y:c.y*h}}
+function renderedClusters(){const recipe=materialRecipes[materialScene];return recipe?clusters.filter(c=>recipe.visible.includes(c.id)):clusters}
+function pos(c,w,h){const point=materialRecipes[materialScene]?.positions[c.id];return{x:(point?.[0]??c.x)*w,y:(point?.[1]??c.y)*h}}
 function radius(c){return c.base+c.cap*(1-Math.exp(-c.usage/c.scale))}
 function seeded(s){return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
 let particles=[],bg=[];
 
 function initParticles(){
  const r=canvas.getBoundingClientRect();particles=[];bg=[];
- clusters.forEach((c,ci)=>{
+ renderedClusters().forEach((c,ci)=>{
   const rand=seeded(900+ci*97),n=44+Math.round(c.base*.72);
   for(let i=0;i<n;i++)particles.push({c,a:rand()*Math.PI*2,rr:Math.pow(rand(),1.75)*(32+rand()*42),z:rand(),sz:.25+Math.pow(rand(),3)*1.9,ph:rand()*6.28});
  });
@@ -286,6 +294,7 @@ function applyEvent(e,index){
  if(e.type==='MCP'&&!activeMCP.includes(e.payload.server||'github'))activeMCP.push(e.payload.server||'github');
  if(e.type==='MEMORY'&&!memories.includes(e.payload.memory))memories.push(e.payload.memory);
  if(e.type==='CONTEXT')ctxState.inst+=e.ctx||1.4;
+ if(e.type==='CONTEXT')shockFx.push({cluster:'context',born:performance.now(),dur:1450,hue:214});
  if(e.type==='READ'){ctxState.repo+=e.ctx;toolUsage.read_file=(toolUsage.read_file||0)+1}
  else if(['RESULT','MCP','CALL','TOOL','TEST','FAIL','PASS'].includes(e.type))ctxState.tools+=e.ctx||0;
  else if(e.type==='MEMORY')ctxState.memory+=e.ctx||0;
@@ -298,8 +307,9 @@ function applyEvent(e,index){
  if(e.type==='TEST'){toolUsage['npm test']=(toolUsage['npm test']||0)+1;shockFx.push({cluster:'test',born:performance.now(),dur:800,hue:167})}
  if(e.type==='FAIL'){fractureFx.push({cluster:'test',born:performance.now(),dur:1300});beamFx.push({from:'test',to:'agent',born:performance.now(),dur:1300,hue:8})}
  if(e.type==='PASS')shockFx.push({cluster:'test',born:performance.now(),dur:1300,hue:158});
- if(!['USER','THINK'].includes(e.type))beamFx.push({from:'agent',to:clusterForEvent(e),born:performance.now(),dur:1250,hue:c.hue});
- if(['CONTEXT','SKILL','MEMORY','MCP','TOOL'].includes(e.type))returnFx.push({from:'agent',to:clusterForEvent(e),born:performance.now(),dur:1250,count:14,hue:c.hue});
+ const agentVisible=!materialScene||materialRecipes[materialScene]?.visible.includes('agent');
+ if(!['USER','THINK'].includes(e.type)&&agentVisible)beamFx.push({from:'agent',to:clusterForEvent(e),born:performance.now(),dur:1250,hue:c.hue});
+ if(['CONTEXT','SKILL','MEMORY','MCP','TOOL'].includes(e.type)&&agentVisible)returnFx.push({from:'agent',to:clusterForEvent(e),born:performance.now(),dur:1250,count:14,hue:c.hue});
  if(e.type==='RESULT')returnFx.push({from:e.phase==='external'?'mcp':'tool',to:e.phase==='external'?'context':'repo',born:performance.now(),dur:1100,count:18,hue:e.phase==='external'?274:211});
  updateSidebar();
 }
@@ -398,7 +408,7 @@ function draw(now){
  });
 
  // cluster field + orbits
- clusters.forEach(c=>{
+ renderedClusters().forEach(c=>{
    const o=pos(c,w,h),rad=radius(c)*(1+Math.sin(now*.001+c.usage)*.018);
    const g=ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,rad*2);g.addColorStop(0,`hsla(${c.hue},85%,70%,${.072+c.recent*.034})`);g.addColorStop(.44,`hsla(${c.hue},75%,55%,.026)`);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(o.x,o.y,rad*2,0,6.28);ctx.fill();
    ctx.save();ctx.translate(o.x,o.y);
@@ -429,7 +439,7 @@ function draw(now){
 
  burstFx=burstFx.filter(f=>drawBurst(f,now,w,h));beamFx=beamFx.filter(f=>drawBeam(f,now,w,h));returnFx=returnFx.filter(f=>drawReturn(f,now,w,h));shockFx=shockFx.filter(f=>drawShock(f,now,w,h));fractureFx=fractureFx.filter(f=>drawFracture(f,now,w,h));
 
- clusters.forEach(c=>{
+ renderedClusters().forEach(c=>{
    const o=pos(c,w,h),active=clusterForEvent(events[currentIndex])===c.id,g=ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,22);
    g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.12,`hsla(${c.hue},90%,78%,.7)`);g.addColorStop(.46,`hsla(${c.hue},80%,68%,.16)`);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(o.x,o.y,22,0,6.28);ctx.fill();
    if(!materialScene){ctx.textAlign='center';ctx.font=`${active?'600':'500'} 10px Inter,system-ui`;ctx.fillStyle=active?'rgba(235,244,255,.96)':'rgba(205,218,232,.84)';ctx.fillText(c.label,o.x,o.y-7);ctx.font='8px Inter,system-ui';ctx.fillStyle='rgba(99,115,134,.72)';ctx.fillText(Math.round(c.usage)+' mass',o.x,o.y+9)}
@@ -485,7 +495,7 @@ function buildScenarioEvents(raw,scenarioId){
  });
 }
 async function loadAgentVisualFixture(){
- try{const response=await fetch('/eval-scenarios.json');if(!response.ok)return;const fixture=await response.json();if(!Array.isArray(fixture.scenarios)||!fixture.scenarios.length)return;const wanted=new URLSearchParams(location.search).get('scenario')||'project-setup';const active=fixture.scenarios.find(scene=>scene.id===wanted)||fixture.scenarios[0];events=buildScenarioEvents(active.events,active.id);if(!materialScene){const nav=document.getElementById('sceneNav');nav.innerHTML=fixture.scenarios.map(scene=>`<option value="${scene.id}">${scene.label}</option>`).join('');nav.value=active.id;nav.onchange=()=>{const q=new URLSearchParams(location.search);q.set('scenario',nav.value);location.search=q.toString()}}if(materialScene){const keep={orbit:['SKILL','MCP','RESULT'],launch:['THINK','MCP','RESULT','CALL','TOOL'],burst:['SEARCH','RESULT','READ'],beam:['MCP','RESULT','CALL','TOOL'],repair:['TEST','FAIL','THINK','SEARCH','EDIT','PASS']}[materialScene]||[];events=events.filter(event=>keep.includes(event.type));events.forEach((event,index)=>event.t=index*.42)}currentIndex=0;elapsed=0;startPerf=performance.now();resetState();applyEvent(events[0],0);showInspector(events[0]);renderRows();renderTimeline()}catch(error){console.warn('Using built-in tracefield demo',error)}
+ try{const response=await fetch('/eval-scenarios.json');if(!response.ok)return;const fixture=await response.json();if(!Array.isArray(fixture.scenarios)||!fixture.scenarios.length)return;const wanted=new URLSearchParams(location.search).get('scenario')||'project-setup';const sourceId=materialScene==='burst'||materialScene==='beam'?'parallel-research':wanted;const active=fixture.scenarios.find(scene=>scene.id===sourceId)||fixture.scenarios[0];events=buildScenarioEvents(active.events,active.id);if(!materialScene){const nav=document.getElementById('sceneNav');nav.innerHTML=fixture.scenarios.map(scene=>`<option value="${scene.id}">${scene.label}</option>`).join('');nav.value=active.id;nav.onchange=()=>{const q=new URLSearchParams(location.search);q.set('scenario',nav.value);location.search=q.toString()}}if(materialScene){const recipe=materialRecipes[materialScene];events=events.filter(event=>recipe?.keep.includes(event.type));events.forEach((event,index)=>event.t=index*.56)}currentIndex=0;elapsed=0;startPerf=performance.now();resetState();applyEvent(events[0],0);showInspector(events[0]);renderRows();renderTimeline()}catch(error){console.warn('Using built-in tracefield demo',error)}
 }
 resize();resetState();currentIndex=0;applyEvent(events[0],0);showInspector(events[0]);renderRows();renderTimeline();loadAgentVisualFixture();requestAnimationFrame(draw);
 </script>
