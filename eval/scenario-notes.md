@@ -8,3 +8,5 @@
 - Runtime events then grow the relevant parent system. Search, function calls, and patches belong to `tools`; they are not independent planets.
 
 The four fixtures cover current-project setup, multi-turn interaction, fan-out/fan-in parallel work, and validation repair. Events marked `parallel A/B/C` share a runtime window; they are rendered as overlapping tool activity.
+
+Important events also carry a fourth tuple field, `metrics`. The demos use it for realistic variation: large accepted reads expand Repo and Context, a multi-file patch grows Repo/Tools more than a documentation edit, while an MCP connection or a memory update reaches its smaller capacity early.
