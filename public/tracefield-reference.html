@@ -13,11 +13,12 @@
 body{overflow:hidden}
 body.material-only #app{grid-template-rows:1fr}body.material-only header,body.material-only aside,body.material-only .bottom,body.material-only .stage-label,body.material-only .current-card,body.material-only .effect-legend{display:none}body.material-only .workspace{display:block;height:100vh}body.material-only .stage{height:100vh}
 button{font:inherit}
-#app{height:100%;display:grid;grid-template-rows:42px 1fr 210px}
+#app{height:100%;display:grid;grid-template-rows:42px 1fr}
 header{display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid var(--line);background:rgba(2,4,7,.97);font-size:10px;z-index:20}
 .brand{font-size:13px;font-weight:650}.crumb{color:var(--muted)}.spacer{flex:1}
 .live{display:flex;align-items:center;gap:6px;color:#8b9aaf}.dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 9px rgba(117,212,159,.6)}
 .btn{border:1px solid var(--line);background:rgba(255,255,255,.035);color:#aeb9c7;border-radius:6px;padding:5px 8px;font-size:9px}
+.top-link{color:#8daee0;text-decoration:none;font-size:9px;letter-spacing:.08em}.zoom-control{display:flex;align-items:center;gap:6px;color:#617084;font-size:8px;letter-spacing:.08em}.zoom-control input{width:70px;accent-color:#6f91bd}
 .workspace{display:grid;grid-template-columns:220px 1fr 250px;min-height:0}
 aside{background:var(--panel);backdrop-filter:blur(15px);border-right:1px solid var(--line);overflow:auto}
 aside.right{border-right:0;border-left:1px solid var(--line)}
@@ -38,7 +39,7 @@ aside.right{border-right:0;border-left:1px solid var(--line)}
 dl{display:grid;grid-template-columns:65px 1fr;gap:7px 9px;font-size:8.5px;margin:10px 0 0}dt{color:#596779}dd{margin:0;color:#97a5b6}
 pre{white-space:pre-wrap;word-break:break-word;font:8.3px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:#8493a5;background:#04070b;border:1px solid rgba(255,255,255,.05);padding:8px;border-radius:6px}
 .effect-file{font:8px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#718197;background:#070b11;border:1px solid rgba(255,255,255,.045);padding:7px;border-radius:5px}
-.bottom{display:grid;grid-template-columns:1fr 330px;background:#070b11;border-top:1px solid var(--line)}
+.bottom{display:none}.right .stream-section{max-height:270px;display:flex;flex-direction:column}.right .rows{height:200px}.right .event-row{grid-template-columns:42px 47px 1fr 42px;padding:5px 0}.right .event-row span:last-child{display:none}
 .events{padding:9px 12px;min-width:0}.event-head{height:22px;display:flex;align-items:center;justify-content:space-between}.event-head .eyebrow{margin:0}.small{font-size:8px;color:#5f6c7e}
 .rows{height:157px;overflow:auto}.event-row{display:grid;grid-template-columns:54px 56px 1fr 76px 58px;gap:7px;align-items:center;padding:5px 0;border-top:1px solid rgba(255,255,255,.03);font-size:8.5px;color:#778598;cursor:pointer}.event-row:hover,.event-row.active{background:rgba(255,255,255,.025)}.event-row.done{opacity:.92}.event-row.future{opacity:.28}
 .tag{font-size:7px;padding:2px 4px;border-radius:3px;width:max-content}
@@ -54,6 +55,8 @@ pre{white-space:pre-wrap;word-break:break-word;font:8.3px/1.55 ui-monospace,SFMo
   <div class="spacer"></div>
   <div class="live"><span class="dot"></span><span id="statusText">LIVE</span></div>
   <div class="crumb" id="clock">00:00:00</div>
+  <label class="zoom-control">ZOOM <input id="zoomSlider" type="range" min=".92" max="1.28" step=".02" value="1.12"></label>
+  <a class="top-link" href="/material">MATERIAL</a>
   <button class="btn" id="playBtn">Pause</button>
   <button class="btn" id="restartBtn">Restart</button>
 </header>
@@ -93,6 +96,10 @@ pre{white-space:pre-wrap;word-break:break-word;font:8.3px/1.55 ui-monospace,SFMo
 </main>
 
 <aside class="right">
+  <div class="section stream-section">
+    <div class="event-head"><div class="eyebrow">Event stream</div><div class="small" id="progressText">1 / 24</div></div>
+    <div class="rows" id="rows"></div>
+  </div>
   <div class="section">
     <div class="eyebrow">Event inspector</div>
     <span class="badge b-user" id="inspectBadge">USER</span>
@@ -157,7 +164,7 @@ let events = [
 
 const typeStyle={USER:'b-user',THINK:'b-think',SKILL:'b-skill',MCP:'b-mcp',SEARCH:'b-search',RESULT:'b-search',READ:'b-user',CALL:'b-mcp',EDIT:'b-edit',TEST:'b-test',FAIL:'b-edit',PASS:'b-test',MEMORY:'b-memory'};
 const canvas=document.getElementById('field'),ctx=canvas.getContext('2d');
-let DPR=1,playing=true,speed=1,startPerf=performance.now(),elapsed=0,currentIndex=0;
+let DPR=1,playing=true,speed=1,startPerf=performance.now(),elapsed=0,currentIndex=0,viewZoom=1.12;
 let burstFx=[],beamFx=[],returnFx=[],shockFx=[],fractureFx=[];
 let toolUsage={},ctxState={inst:8.2,repo:0,tools:0,memory:0},activeSkills=[],activeMCP=[],memories=[];
 let satellites=[],historyEdges=[],eventNodes=[];
@@ -324,8 +331,9 @@ function curve(a,b,hue,alpha=.12){
  ctx.strokeStyle=`hsla(${hue},75%,72%,${alpha})`;ctx.lineWidth=.62;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.bezierCurveTo(cp1.x,cp1.y,cp2.x,cp2.y,b.x,b.y);ctx.stroke();
 }
 function drawBeam(fx,now,w,h){
- const p=(now-fx.born)/fx.dur;if(p<0||p>1)return false;const a=pos(cluster(fx.from),w,h),b=pos(cluster(fx.to),w,h);ctx.save();ctx.globalCompositeOperation='screen';
- for(let lw=8;lw>=1;lw-=2){ctx.lineWidth=lw;ctx.strokeStyle=`hsla(${fx.hue},90%,78%,${lw===2?.62:.032*(1-p)})`;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}ctx.restore();return true;
+ const p=(now-fx.born)/fx.dur;if(p<0||p>1)return false;const a=pos(cluster(fx.from),w,h),b=pos(cluster(fx.to),w,h),bend=(fx.hue%2?1:-1)*Math.min(74,Math.abs(b.x-a.x)*.22),cp={x:(a.x+b.x)/2+bend,y:(a.y+b.y)/2-56};ctx.save();ctx.globalCompositeOperation='screen';
+ ctx.lineWidth=1;ctx.strokeStyle=`hsla(${fx.hue},90%,78%,${.22*(1-p)})`;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.quadraticCurveTo(cp.x,cp.y,b.x,b.y);ctx.stroke();
+ for(let i=0;i<12;i++){const q=Math.max(0,Math.min(1,p*1.28-i*.052)),x=(1-q)*(1-q)*a.x+2*(1-q)*q*cp.x+q*q*b.x,y=(1-q)*(1-q)*a.y+2*(1-q)*q*cp.y+q*q*b.y;ctx.fillStyle=`hsla(${fx.hue},92%,82%,${.56-i*.028})`;ctx.beginPath();ctx.arc(x,y,1.2+(i%3)*.22,0,6.28);ctx.fill()}ctx.restore();return true;
 }
 function drawBurst(fx,now,w,h){
  const p=(now-fx.born)/fx.dur;if(p<0||p>1)return false;const o=pos(cluster(fx.cluster),w,h);ctx.save();ctx.globalCompositeOperation='screen';
@@ -346,7 +354,7 @@ function drawFracture(fx,now,w,h){
 function draw(now){
  const r=canvas.getBoundingClientRect(),w=r.width,h=r.height;ctx.fillStyle='rgba(3,7,11,.32)';ctx.fillRect(0,0,w,h);
  const vign=ctx.createRadialGradient(w*.5,h*.48,0,w*.5,h*.48,Math.max(w,h)*.76);vign.addColorStop(0,'rgba(25,43,59,.18)');vign.addColorStop(.55,'rgba(4,8,13,.03)');vign.addColorStop(1,'rgba(0,0,0,.38)');ctx.fillStyle=vign;ctx.fillRect(0,0,w,h);
- bg.forEach(p=>{const tw=.45+.55*Math.sin(now*.001+p.ph);ctx.fillStyle=`hsla(${p.h},65%,80%,${p.a*(.55+tw*.45)})`;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,6.28);ctx.fill()});ctx.save();ctx.translate(w*.5,h*.52);ctx.scale(1.24,1.24);ctx.translate(-w*.5,-h*.52);
+ bg.forEach(p=>{const tw=.45+.55*Math.sin(now*.001+p.ph);ctx.fillStyle=`hsla(${p.h},65%,80%,${p.a*(.55+tw*.45)})`;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,6.28);ctx.fill()});ctx.save();ctx.translate(w*.5,h*.52);ctx.scale(viewZoom,viewZoom);ctx.translate(-w*.5,-h*.52);
 
  // Historical execution trajectory: always remains visible
  historyEdges.forEach((e,idx)=>{
@@ -424,6 +432,7 @@ document.getElementById('playBtn').onclick=()=>{
  if(playing)startPerf=performance.now()-elapsed*1000/speed;
 };
 document.getElementById('restartBtn').onclick=()=>{seekTo(0);elapsed=0;startPerf=performance.now();playing=true;document.getElementById('playBtn').textContent='Pause';document.getElementById('statusText').textContent='LIVE'};
+document.getElementById('zoomSlider').oninput=e=>{viewZoom=+e.target.value};
 document.querySelectorAll('[data-speed]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-speed]').forEach(x=>x.classList.remove('active'));b.classList.add('active');speed=+b.dataset.speed;startPerf=performance.now()-elapsed*1000/speed});
 
 function adaptAgentVisualEvent(event,index){
