@@ -264,7 +264,10 @@ function updateSidebar(){
 }
 function eventMass(e){
  const table={CONTEXT:5.4,MEMORY:2.4,SKILL:2.8,MCP:2.2,TOOL:1.25,SEARCH:1.65,RESULT:2.1,READ:2.5,EDIT:3.1,TEST:1.8,FAIL:1.4,PASS:1.1,USER:1.1,THINK:1.35,CALL:1.6};
- return table[e.type]||1;
+ const m=e.metrics||e.payload?.metrics||{};
+ const content=Math.min(4.5,(m.inputTokens||0)/900+(m.outputTokens||0)/900+(m.resultBytes||0)/6000+(m.lineCount||0)/120+(m.diffLines||0)/100+(m.fileCount||0)*.25);
+ const duration=Math.min(1.5,(m.durationMs||0)/1800);
+ return (table[e.type]||1)+content+duration;
 }
 function growCluster(c,e){
  const gain=eventMass(e),history=.45;
@@ -277,6 +280,7 @@ function growCluster(c,e){
 function applyEvent(e,index){
  addPersistentEvent(e,index);
  const ef=e.effect||{},c=cluster(clusterForEvent(e)); growCluster(c,e); c.recent=Math.min(1,c.recent+.22);
+ if(e.metrics?.contextAccepted&&['READ','RESULT'].includes(e.type)&&c.id!=='context')growCluster(cluster('context'),{type:'CONTEXT',metrics:e.metrics});
  const agent=cluster('agent');if(c.id!=='agent')growCluster(agent,{type:'THINK'});agent.recent=Math.min(1,agent.recent+.13);
  if(e.type==='SKILL'&&!activeSkills.includes(e.payload.skill))activeSkills.push(e.payload.skill);
  if(e.type==='MCP'&&!activeMCP.includes(e.payload.server||'github'))activeMCP.push(e.payload.server||'github');
@@ -463,15 +467,16 @@ function adaptAgentVisualEvent(event,index){
  const phase=event.kind.includes('search')?'search':event.kind.includes('mcp')||event.kind==='tool_result'&&/^MCP/.test(event.title)?'external':event.kind.includes('test')?'verify':event.kind==='patch_applied'?'modify':event.kind==='file_read'?'inspect':event.kind==='memory_written'?'finalize':event.kind.includes('load')||event.kind.includes('assembled')||event.kind.includes('discovered')?'bootstrap':'reasoning';
  const amount={CONTEXT:2.1,MEMORY:1.2,SKILL:1.0,MCP:.8,TOOL:.7,SEARCH:.8,RESULT:1.5,READ:1.2,EDIT:1.0,TEST:.6,FAIL:.8,PASS:.4,USER:.5,THINK:.45}[type]||.4;
  const server=(event.kind==='mcp_connected'||event.kind==='tool_call'&&/^MCP/.test(event.title))?'github':undefined;
- const payload={source:'Codex eval fixture',kind:event.kind,detail:event.detail,server,skill:type==='SKILL'?'agent-visual-workflow':undefined,memory:type==='MEMORY'?'project-preferences':undefined,tool:type==='TOOL'?event.title:undefined,file:type==='READ'?event.title.replace(/^Read /,''):undefined};
- return {id:event.id||`eval-${index}`,t:index*1.1,type,phase,title:event.title,detail:event.detail,dur:'—',ctx:amount,payload,effect:{file:`effects/${event.kind}.json`,cluster:clusterForEvent({type,phase}),effect:eventKindsFor(type)}};
+ const metrics=event.metrics||{};
+ const payload={source:'Codex eval fixture',kind:event.kind,detail:event.detail,server,skill:type==='SKILL'?'agent-visual-workflow':undefined,memory:type==='MEMORY'?'project-preferences':undefined,tool:type==='TOOL'?event.title:undefined,file:type==='READ'?event.title.replace(/^Read /,''):undefined,metrics};
+ return {id:event.id||`eval-${index}`,t:index*1.1,type,phase,title:event.title,detail:event.detail,dur:metrics.durationMs?`${metrics.durationMs} ms`:'—',ctx:amount,metrics,payload,effect:{file:`effects/${event.kind}.json`,cluster:clusterForEvent({type,phase}),effect:eventKindsFor(type)}};
 }
 function eventKindsFor(type){return ({CONTEXT:'context-absorption',SEARCH:'outward-burst',MCP:'station-ignite',TOOL:'tool-satellite',RESULT:'particle-return',EDIT:'localized-shockwave',TEST:'gate-charge',FAIL:'red-fracture',PASS:'green-collapse',MEMORY:'stable-orbit-write',SKILL:'satellite-capture'})[type]||'slow-vortex'}
 function buildScenarioEvents(raw,scenarioId){
  const bootstrap=new Set(['context_assembled','memory_loaded','skill_discovered','skill_loaded','mcp_connected','tool_discovered']);
  let time=.78,parallelAt=null;
- return raw.map(([kind,title,detail],index)=>{
-   const event=adaptAgentVisualEvent({id:`${scenarioId}-${index+1}`,kind,title,detail},index);
+ return raw.map(([kind,title,detail,metrics],index)=>{
+   const event=adaptAgentVisualEvent({id:`${scenarioId}-${index+1}`,kind,title,detail,metrics},index);
    const parallel=/parallel\s+[A-Z]/i.test(detail)||/^MCP result [A-Z]$/i.test(title);
    if(bootstrap.has(kind))event.t=.22;
    else if(parallel){if(parallelAt===null)parallelAt=time;event.t=parallelAt}
