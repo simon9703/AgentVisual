@@ -135,6 +135,8 @@ trail: input → think</div></div>
 </div>
 
 <script>
+const materialScene=new URLSearchParams(location.search).get('material');
+if(materialScene)document.body.classList.add('material-only');
 let events = [
  {id:'evt-01',t:0.0,type:'USER',phase:'input',title:'User prompt',detail:'Fix the login race condition. Use GitHub MCP if useful.',dur:'0 ms',ctx:.8,payload:{prompt:'Fix the login race condition. Use GitHub MCP if useful.'},effect:{file:'effects/user-prompt.json',cluster:'user',effect:'pulse'}},
  {id:'evt-02',t:1.0,type:'THINK',phase:'reasoning',title:'AI think',detail:'Need to inspect auth flow, token refresh, and login callback ordering.',dur:'740 ms',ctx:.5,payload:{summary:'inspect auth flow and refresh ordering'},effect:{file:'effects/think-vortex.json',cluster:'think',effect:'slow-vortex'}},
@@ -396,9 +398,7 @@ function draw(now){
    glow.addColorStop(0,`hsla(${s.hue},85%,80%,${latest?.9:.62})`);glow.addColorStop(.28,`hsla(${s.hue},80%,68%,${latest?.24:.10})`);glow.addColorStop(1,'rgba(0,0,0,0)');
    ctx.fillStyle=glow;ctx.beginPath();ctx.arc(p.x,p.y,latest?14:9,0,6.28);ctx.fill();
    ctx.fillStyle=`hsla(${s.hue},80%,78%,${latest?.95:.68})`;ctx.beginPath();ctx.arc(p.x,p.y,rr,0,6.28);ctx.fill();
-   // keep labels for all executed children, but historical ones are quieter
-   ctx.textAlign='left';ctx.font='8px Inter,system-ui';ctx.fillStyle=latest?'rgba(211,225,240,.9)':'rgba(105,120,139,.56)';
-   ctx.fillText(s.label,p.x+7,p.y+3);
+   if(!materialScene){ctx.textAlign='left';ctx.font='8px Inter,system-ui';ctx.fillStyle=latest?'rgba(211,225,240,.9)':'rgba(105,120,139,.56)';ctx.fillText(s.label,p.x+7,p.y+3)}
  });
 
  burstFx=burstFx.filter(f=>drawBurst(f,now,w,h));beamFx=beamFx.filter(f=>drawBeam(f,now,w,h));returnFx=returnFx.filter(f=>drawReturn(f,now,w,h));shockFx=shockFx.filter(f=>drawShock(f,now,w,h));fractureFx=fractureFx.filter(f=>drawFracture(f,now,w,h));
@@ -406,8 +406,7 @@ function draw(now){
  clusters.forEach(c=>{
    const o=pos(c,w,h),active=clusterForEvent(events[currentIndex])===c.id,g=ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,22);
    g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.12,`hsla(${c.hue},90%,78%,.7)`);g.addColorStop(.46,`hsla(${c.hue},80%,68%,.16)`);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(o.x,o.y,22,0,6.28);ctx.fill();
-   ctx.textAlign='center';ctx.font=`${active?'600':'500'} 10px Inter,system-ui`;ctx.fillStyle=active?'rgba(235,244,255,.96)':'rgba(205,218,232,.84)';ctx.fillText(c.label,o.x,o.y-7);
-   ctx.font='8px Inter,system-ui';ctx.fillStyle='rgba(99,115,134,.72)';ctx.fillText(Math.round(c.usage)+' mass',o.x,o.y+9);
+   if(!materialScene){ctx.textAlign='center';ctx.font=`${active?'600':'500'} 10px Inter,system-ui`;ctx.fillStyle=active?'rgba(235,244,255,.96)':'rgba(205,218,232,.84)';ctx.fillText(c.label,o.x,o.y-7);ctx.font='8px Inter,system-ui';ctx.fillStyle='rgba(99,115,134,.72)';ctx.fillText(Math.round(c.usage)+' mass',o.x,o.y+9)}
  });
 
  ctx.restore();processTimeline(now);requestAnimationFrame(draw);
@@ -443,7 +442,7 @@ function adaptAgentVisualEvent(event,index){
 }
 function eventKindsFor(type){return ({SEARCH:'outward-burst',MCP:'beam-out',RESULT:'particle-return',EDIT:'localized-shockwave',TEST:'gate-charge',FAIL:'red-fracture',PASS:'green-collapse',MEMORY:'stable-orbit-write',SKILL:'satellite-capture'})[type]||'slow-vortex'}
 async function loadAgentVisualFixture(){
- try{const response=await fetch('/current-session.events.json');if(!response.ok)return;const fixture=await response.json();if(!Array.isArray(fixture.events)||!fixture.events.length)return;events=fixture.events.map(adaptAgentVisualEvent);const scene=new URLSearchParams(location.search).get('material');if(scene){document.body.classList.add('material-only');const keep={orbit:['SKILL','MCP','RESULT'],launch:['THINK','MCP','RESULT','CALL'],burst:['SEARCH','RESULT','READ'],beam:['MCP','RESULT','CALL'],repair:['TEST','FAIL','THINK','SEARCH','EDIT','PASS']}[scene]||[];events=events.filter(event=>keep.includes(event.type));events.forEach((event,index)=>event.t=index*1.1)}currentIndex=0;elapsed=0;startPerf=performance.now();resetState();applyEvent(events[0],0);showInspector(events[0]);renderRows();renderTimeline()}catch(error){console.warn('Using built-in tracefield demo',error)}
+ try{const response=await fetch('/current-session.events.json');if(!response.ok)return;const fixture=await response.json();if(!Array.isArray(fixture.events)||!fixture.events.length)return;events=fixture.events.map(adaptAgentVisualEvent);if(materialScene){const keep={orbit:['SKILL','MCP','RESULT'],launch:['THINK','MCP','RESULT','CALL'],burst:['SEARCH','RESULT','READ'],beam:['MCP','RESULT','CALL'],repair:['TEST','FAIL','THINK','SEARCH','EDIT','PASS']}[materialScene]||[];events=events.filter(event=>keep.includes(event.type));events.forEach((event,index)=>event.t=index*1.1)}currentIndex=0;elapsed=0;startPerf=performance.now();resetState();applyEvent(events[0],0);showInspector(events[0]);renderRows();renderTimeline()}catch(error){console.warn('Using built-in tracefield demo',error)}
 }
 resize();resetState();currentIndex=0;applyEvent(events[0],0);showInspector(events[0]);renderRows();renderTimeline();loadAgentVisualFixture();requestAnimationFrame(draw);
 </script>
