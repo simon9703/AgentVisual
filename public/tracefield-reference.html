@@ -19,7 +19,7 @@ header{display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px
 .live{display:flex;align-items:center;gap:6px;color:#8b9aaf}.dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 9px rgba(117,212,159,.6)}
 .btn{border:1px solid var(--line);background:rgba(255,255,255,.035);color:#aeb9c7;border-radius:6px;padding:5px 8px;font-size:9px}
 .top-link{color:#8daee0;text-decoration:none;font-size:9px;letter-spacing:.08em}.zoom-control{display:flex;align-items:center;gap:6px;color:#617084;font-size:8px;letter-spacing:.08em}.zoom-control input{width:70px;accent-color:#6f91bd}
-.scene-nav{display:flex;gap:4px}.scene-nav button{border:1px solid var(--line);border-radius:4px;padding:4px 6px;background:transparent;color:#718095;font-size:7px;letter-spacing:.06em}.scene-nav button.active{color:#dbe8ff;border-color:rgba(144,180,255,.45);background:rgba(97,137,210,.12)}
+.scene-nav select{width:118px;border:1px solid var(--line);border-radius:4px;padding:4px 6px;background:#080d14;color:#aebcd0;font-size:8px;letter-spacing:.05em;outline:none}.speed-control output{min-width:18px;color:#aebcd0;font-size:8px}
 .workspace{display:grid;grid-template-columns:220px 1fr 250px;min-height:0}
 aside{background:var(--panel);backdrop-filter:blur(15px);border-right:1px solid var(--line);overflow:auto}
 aside.right{border-right:0;border-left:1px solid var(--line)}
@@ -56,7 +56,8 @@ pre{white-space:pre-wrap;word-break:break-word;font:8.3px/1.55 ui-monospace,SFMo
   <div class="spacer"></div>
   <div class="live"><span class="dot"></span><span id="statusText">LIVE</span></div>
   <div class="crumb" id="clock">00:00:00</div>
-  <div class="scene-nav" id="sceneNav"></div>
+  <div class="scene-nav"><select id="sceneNav" aria-label="Replay scenario"></select></div>
+  <label class="zoom-control speed-control">SPEED <input id="speedSlider" type="range" min="0" max="1" step=".05" value=".35"><output id="speedValue">.35×</output></label>
   <label class="zoom-control">ZOOM <input id="zoomSlider" type="range" min=".92" max="1.28" step=".02" value="1.12"></label>
   <a class="top-link" href="/material">MATERIAL</a>
   <button class="btn" id="playBtn">Pause</button>
@@ -168,21 +169,21 @@ let events = [
 
 const typeStyle={USER:'b-user',THINK:'b-think',CONTEXT:'b-user',SKILL:'b-skill',MCP:'b-mcp',TOOL:'b-mcp',SEARCH:'b-search',RESULT:'b-search',READ:'b-user',CALL:'b-mcp',EDIT:'b-edit',TEST:'b-test',FAIL:'b-edit',PASS:'b-test',MEMORY:'b-memory'};
 const canvas=document.getElementById('field'),ctx=canvas.getContext('2d');
-let DPR=1,playing=true,speed=1,startPerf=performance.now(),elapsed=0,currentIndex=0,viewZoom=1.12;
+let DPR=1,playing=true,speed=.35,startPerf=performance.now(),elapsed=0,currentIndex=0,viewZoom=1.12;
 let burstFx=[],beamFx=[],returnFx=[],shockFx=[],fractureFx=[];
 let toolUsage={},ctxState={inst:0,repo:0,tools:0,memory:0},activeSkills=[],activeMCP=[],memories=[];
 let satellites=[],historyEdges=[],eventNodes=[];
 
 const clusters=[
- {id:'user',label:'User',x:.12,y:.26,hue:205,usage:80,recent:.12,spin:.03},
- {id:'think',label:'Think',x:.31,y:.30,hue:218,usage:120,recent:.18,spin:.08},
- {id:'context',label:'Context',x:.50,y:.48,hue:218,usage:54,recent:.04,spin:.03},
- {id:'skill',label:'Skills',x:.50,y:.17,hue:157,usage:38,recent:.03,spin:.07},
- {id:'repo',label:'Repo',x:.23,y:.62,hue:198,usage:42,recent:.03,spin:-.06},
- {id:'tool',label:'Tools',x:.66,y:.55,hue:245,usage:46,recent:.03,spin:.05},
- {id:'mcp',label:'MCP',x:.79,y:.27,hue:274,usage:38,recent:.03,spin:-.08},
- {id:'test',label:'Test',x:.84,y:.73,hue:167,usage:34,recent:.03,spin:-.05},
- {id:'memory',label:'Memory',x:.20,y:.18,hue:42,usage:30,recent:.02,spin:.05}
+ {id:'user',label:'User',x:.09,y:.49,hue:205,usage:44,recent:.03,spin:.03},
+ {id:'agent',label:'Agent',x:.42,y:.46,hue:218,usage:110,recent:.12,spin:.08},
+ {id:'context',label:'Context',x:.39,y:.76,hue:214,usage:54,recent:.04,spin:.03},
+ {id:'memory',label:'Memory',x:.19,y:.20,hue:42,usage:30,recent:.02,spin:.05},
+ {id:'skill',label:'Skills',x:.47,y:.15,hue:157,usage:38,recent:.03,spin:.07},
+ {id:'tool',label:'Tools',x:.69,y:.46,hue:245,usage:46,recent:.03,spin:.05},
+ {id:'mcp',label:'MCP',x:.84,y:.20,hue:274,usage:38,recent:.03,spin:-.08},
+ {id:'repo',label:'Repo',x:.72,y:.75,hue:198,usage:42,recent:.03,spin:-.06},
+ {id:'test',label:'Test',x:.91,y:.70,hue:167,usage:34,recent:.03,spin:-.05}
 ];
 const initialUsage=Object.fromEntries(clusters.map(c=>[c.id,c.usage]));
 function cluster(id){return clusters.find(c=>c.id===id)}
@@ -204,9 +205,9 @@ function resize(){const r=canvas.getBoundingClientRect();DPR=Math.min(devicePixe
 addEventListener('resize',resize);
 
 function clusterForEvent(e){
- if(e.type==='USER')return'user'; if(e.type==='THINK')return'think'; if(e.type==='CONTEXT')return'context'; if(e.type==='SKILL')return'skill';
+ if(e.type==='USER')return'user'; if(e.type==='THINK')return'agent'; if(e.type==='CONTEXT')return'context'; if(e.type==='SKILL')return'skill';
  if(e.type==='READ')return'repo'; if(['SEARCH','CALL','EDIT','TOOL'].includes(e.type)||(e.type==='RESULT'&&e.phase==='search'))return'tool';
- if(e.type==='MCP'||(e.type==='RESULT'&&e.phase==='external'))return'mcp'; if(['TEST','FAIL','PASS'].includes(e.type))return'test'; if(e.type==='MEMORY')return'memory'; return'think';
+ if(e.type==='MCP'||(e.type==='RESULT'&&e.phase==='external'))return'mcp'; if(['TEST','FAIL','PASS'].includes(e.type))return'test'; if(e.type==='MEMORY')return'memory'; return'agent';
 }
 
 function satelliteLabel(e){
@@ -263,6 +264,7 @@ function updateSidebar(){
 function applyEvent(e,index){
  addPersistentEvent(e,index);
  const ef=e.effect||{},c=cluster(clusterForEvent(e)); c.usage += 55 + (e.ctx||0)*90; c.recent=Math.min(1,c.recent+.22);
+ const agent=cluster('agent');agent.recent=Math.min(1,agent.recent+.13);
  if(e.type==='SKILL'&&!activeSkills.includes(e.payload.skill))activeSkills.push(e.payload.skill);
  if(e.type==='MCP'&&!activeMCP.includes(e.payload.server||'github'))activeMCP.push(e.payload.server||'github');
  if(e.type==='MEMORY'&&!memories.includes(e.payload.memory))memories.push(e.payload.memory);
@@ -277,9 +279,10 @@ function applyEvent(e,index){
  if(e.type==='TOOL'){toolUsage[e.payload.tool||'tool']=(toolUsage[e.payload.tool||'tool']||0)+1;beamFx.push({from:'tool',to:e.payload.server?'mcp':'repo',born:performance.now(),dur:820,hue:245})}
  if(e.type==='EDIT'){toolUsage.apply_patch=(toolUsage.apply_patch||0)+1;shockFx.push({cluster:'tool',born:performance.now(),dur:1000,hue:24})}
  if(e.type==='TEST'){toolUsage['npm test']=(toolUsage['npm test']||0)+1;shockFx.push({cluster:'test',born:performance.now(),dur:800,hue:167})}
- if(e.type==='FAIL'){fractureFx.push({cluster:'test',born:performance.now(),dur:1300});beamFx.push({from:'test',to:'think',born:performance.now(),dur:1000,hue:8})}
+ if(e.type==='FAIL'){fractureFx.push({cluster:'test',born:performance.now(),dur:1300});beamFx.push({from:'test',to:'agent',born:performance.now(),dur:1300,hue:8})}
  if(e.type==='PASS')shockFx.push({cluster:'test',born:performance.now(),dur:1300,hue:158});
- if(['CONTEXT','SKILL','MEMORY','MCP','TOOL'].includes(e.type))returnFx.push({from:'user',to:clusterForEvent(e),born:performance.now(),dur:950,count:14,hue:c.hue});
+ if(!['USER','THINK'].includes(e.type))beamFx.push({from:'agent',to:clusterForEvent(e),born:performance.now(),dur:1250,hue:c.hue});
+ if(['CONTEXT','SKILL','MEMORY','MCP','TOOL'].includes(e.type))returnFx.push({from:'agent',to:clusterForEvent(e),born:performance.now(),dur:1250,count:14,hue:c.hue});
  if(e.type==='RESULT')returnFx.push({from:e.phase==='external'?'mcp':'tool',to:e.phase==='external'?'context':'repo',born:performance.now(),dur:1100,count:18,hue:e.phase==='external'?274:211});
  updateSidebar();
 }
@@ -438,6 +441,7 @@ document.getElementById('playBtn').onclick=()=>{
 };
 document.getElementById('restartBtn').onclick=()=>{seekTo(0);elapsed=0;startPerf=performance.now();playing=true;document.getElementById('playBtn').textContent='Pause';document.getElementById('statusText').textContent='LIVE'};
 document.getElementById('zoomSlider').oninput=e=>{viewZoom=+e.target.value};
+document.getElementById('speedSlider').oninput=e=>{speed=+e.target.value;document.getElementById('speedValue').textContent=speed.toFixed(2).replace(/^0/,'')+'×';if(speed>0&&playing)startPerf=performance.now()-elapsed*1000/speed};
 document.querySelectorAll('[data-speed]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-speed]').forEach(x=>x.classList.remove('active'));b.classList.add('active');speed=+b.dataset.speed;startPerf=performance.now()-elapsed*1000/speed});
 
 function adaptAgentVisualEvent(event,index){
@@ -451,7 +455,7 @@ function adaptAgentVisualEvent(event,index){
 }
 function eventKindsFor(type){return ({CONTEXT:'context-absorption',SEARCH:'outward-burst',MCP:'station-ignite',TOOL:'tool-satellite',RESULT:'particle-return',EDIT:'localized-shockwave',TEST:'gate-charge',FAIL:'red-fracture',PASS:'green-collapse',MEMORY:'stable-orbit-write',SKILL:'satellite-capture'})[type]||'slow-vortex'}
 async function loadAgentVisualFixture(){
- try{const response=await fetch('/eval-scenarios.json');if(!response.ok)return;const fixture=await response.json();if(!Array.isArray(fixture.scenarios)||!fixture.scenarios.length)return;const wanted=new URLSearchParams(location.search).get('scenario')||'project-setup';const active=fixture.scenarios.find(scene=>scene.id===wanted)||fixture.scenarios[0];events=active.events.map(([kind,title,detail],index)=>adaptAgentVisualEvent({id:`${active.id}-${index+1}`,kind,title,detail},index));if(!materialScene){const nav=document.getElementById('sceneNav');nav.innerHTML=fixture.scenarios.map(scene=>`<button class="${scene.id===active.id?'active':''}" data-scene="${scene.id}">${scene.label}</button>`).join('');nav.querySelectorAll('button').forEach(button=>button.onclick=()=>{const q=new URLSearchParams(location.search);q.set('scenario',button.dataset.scene);location.search=q.toString()})}if(materialScene){const keep={orbit:['SKILL','MCP','RESULT'],launch:['THINK','MCP','RESULT','CALL','TOOL'],burst:['SEARCH','RESULT','READ'],beam:['MCP','RESULT','CALL','TOOL'],repair:['TEST','FAIL','THINK','SEARCH','EDIT','PASS']}[materialScene]||[];events=events.filter(event=>keep.includes(event.type));events.forEach((event,index)=>event.t=index*1.1)}currentIndex=0;elapsed=0;startPerf=performance.now();resetState();applyEvent(events[0],0);showInspector(events[0]);renderRows();renderTimeline()}catch(error){console.warn('Using built-in tracefield demo',error)}
+ try{const response=await fetch('/eval-scenarios.json');if(!response.ok)return;const fixture=await response.json();if(!Array.isArray(fixture.scenarios)||!fixture.scenarios.length)return;const wanted=new URLSearchParams(location.search).get('scenario')||'project-setup';const active=fixture.scenarios.find(scene=>scene.id===wanted)||fixture.scenarios[0];events=active.events.map(([kind,title,detail],index)=>adaptAgentVisualEvent({id:`${active.id}-${index+1}`,kind,title,detail},index));if(!materialScene){const nav=document.getElementById('sceneNav');nav.innerHTML=fixture.scenarios.map(scene=>`<option value="${scene.id}">${scene.label}</option>`).join('');nav.value=active.id;nav.onchange=()=>{const q=new URLSearchParams(location.search);q.set('scenario',nav.value);location.search=q.toString()}}if(materialScene){const keep={orbit:['SKILL','MCP','RESULT'],launch:['THINK','MCP','RESULT','CALL','TOOL'],burst:['SEARCH','RESULT','READ'],beam:['MCP','RESULT','CALL','TOOL'],repair:['TEST','FAIL','THINK','SEARCH','EDIT','PASS']}[materialScene]||[];events=events.filter(event=>keep.includes(event.type));events.forEach((event,index)=>event.t=index*1.1)}currentIndex=0;elapsed=0;startPerf=performance.now();resetState();applyEvent(events[0],0);showInspector(events[0]);renderRows();renderTimeline()}catch(error){console.warn('Using built-in tracefield demo',error)}
 }
 resize();resetState();currentIndex=0;applyEvent(events[0],0);showInspector(events[0]);renderRows();renderTimeline();loadAgentVisualFixture();requestAnimationFrame(draw);
 </script>
