@@ -3,21 +3,21 @@
   "fixture": "agentvisual-current-project-session",
   "description": "Sanitized semantic replay of the AgentVisual setup and layering work.",
   "events": [
-    { "id": "session-01", "at": 0, "kind": "prompt", "title": "User", "detail": "Create AgentVisual Material Lab and prepare a deployable Next.js project", "target": "context" },
+    { "id": "session-01", "at": 0, "kind": "prompt", "title": "User", "detail": "Create AgentVisual Material Lab and prepare a deployable Next.js project", "target": "context", "metrics": { "inputTokens": 42, "contextAccepted": true } },
     { "id": "session-02", "at": 950, "kind": "reasoning", "title": "Plan", "detail": "Inspect reference project and initialize a minimal, deployable architecture", "target": "think", "parentId": "session-01" },
     { "id": "session-03", "at": 1850, "kind": "tool_call", "title": "Repository", "detail": "Read AgentVisual repository metadata", "target": "mcp", "parentId": "session-02" },
-    { "id": "session-04", "at": 2700, "kind": "file_read", "title": "Reference", "detail": "FinanceList/package.json · Next, Tailwind, lucide, Recharts, Zod", "target": "repo", "parentId": "session-02" },
-    { "id": "session-05", "at": 3500, "kind": "file_read", "title": "Reference", "detail": "FinanceList/AGENTS.md · component and typography conventions", "target": "repo", "parentId": "session-04" },
-    { "id": "session-06", "at": 4400, "kind": "patch_applied", "title": "Initialize", "detail": "Next.js App Router, Tailwind config and shadcn-style Button", "target": "repo", "parentId": "session-02" },
-    { "id": "session-07", "at": 5300, "kind": "patch_applied", "title": "Material Lab", "detail": "Particle field, adaptive orbit, beam and retained satellite renderer", "target": "repo", "parentId": "session-06" },
+    { "id": "session-04", "at": 2700, "kind": "file_read", "title": "Reference", "detail": "FinanceList/package.json · Next, Tailwind, lucide, Recharts, Zod", "target": "repo", "parentId": "session-02", "metrics": { "resultBytes": 4200, "lineCount": 86, "fileCount": 1, "contextAccepted": true } },
+    { "id": "session-05", "at": 3500, "kind": "file_read", "title": "Reference", "detail": "FinanceList/AGENTS.md · component and typography conventions", "target": "repo", "parentId": "session-04", "metrics": { "resultBytes": 6100, "lineCount": 142, "fileCount": 1, "contextAccepted": true } },
+    { "id": "session-06", "at": 4400, "kind": "patch_applied", "title": "Initialize", "detail": "Next.js App Router, Tailwind config and shadcn-style Button", "target": "repo", "parentId": "session-02", "metrics": { "diffLines": 184, "fileCount": 11, "durationMs": 820 } },
+    { "id": "session-07", "at": 5300, "kind": "patch_applied", "title": "Material Lab", "detail": "Particle field, adaptive orbit, beam and retained satellite renderer", "target": "repo", "parentId": "session-06", "metrics": { "diffLines": 362, "fileCount": 4, "durationMs": 1640 } },
     { "id": "session-08", "at": 6200, "kind": "test_started", "title": "Typecheck", "detail": "pnpm typecheck", "target": "test", "parentId": "session-07" },
     { "id": "session-09", "at": 7100, "kind": "test_failed", "title": "Type error", "detail": "Satellite fixture inferred as an incomplete Record", "target": "test", "parentId": "session-08" },
     { "id": "session-10", "at": 8000, "kind": "retry", "title": "Fix", "detail": "Introduce an explicit emptySatellites factory", "target": "think", "parentId": "session-09" },
-    { "id": "session-11", "at": 8900, "kind": "patch_applied", "title": "Patch", "detail": "Use a complete AgentZone record for replay state", "target": "repo", "parentId": "session-10" },
+    { "id": "session-11", "at": 8900, "kind": "patch_applied", "title": "Patch", "detail": "Use a complete AgentZone record for replay state", "target": "repo", "parentId": "session-10", "metrics": { "diffLines": 24, "fileCount": 2, "durationMs": 210 } },
     { "id": "session-12", "at": 9800, "kind": "test_started", "title": "Build", "detail": "pnpm typecheck && pnpm build", "target": "test", "parentId": "session-11" },
     { "id": "session-13", "at": 10700, "kind": "test_passed", "title": "Build passed", "detail": "Static Next.js route generated successfully", "target": "test", "parentId": "session-12" },
     { "id": "session-14", "at": 11600, "kind": "patch_applied", "title": "Layer", "detail": "Extract event domain, execution-field topology and visual feature", "target": "repo", "parentId": "session-13" },
-    { "id": "session-15", "at": 12500, "kind": "memory_written", "title": "Project rules", "detail": "Write repository-safe rules and adapter contract", "target": "memory", "parentId": "session-14" },
+    { "id": "session-15", "at": 12500, "kind": "memory_written", "title": "Project rules", "detail": "Write repository-safe rules and adapter contract", "target": "memory", "parentId": "session-14", "metrics": { "outputTokens": 186, "contextAccepted": true } },
     { "id": "session-16", "at": 13400, "kind": "tool_result", "title": "GitHub sync", "detail": "Project files synchronized to main", "target": "context", "parentId": "session-15" }
   ]
 }
