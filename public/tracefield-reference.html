@@ -175,32 +175,33 @@ let toolUsage={},ctxState={inst:0,repo:0,tools:0,memory:0},activeSkills=[],activ
 let satellites=[],historyEdges=[],eventNodes=[];
 
 const clusters=[
- {id:'user',label:'User',x:.09,y:.49,hue:205,usage:44,recent:.03,spin:.03},
- {id:'agent',label:'Agent',x:.42,y:.46,hue:218,usage:110,recent:.12,spin:.08},
- {id:'context',label:'Context',x:.39,y:.76,hue:214,usage:54,recent:.04,spin:.03},
- {id:'memory',label:'Memory',x:.19,y:.20,hue:42,usage:30,recent:.02,spin:.05},
- {id:'skill',label:'Skills',x:.47,y:.15,hue:157,usage:38,recent:.03,spin:.07},
- {id:'tool',label:'Tools',x:.69,y:.46,hue:245,usage:46,recent:.03,spin:.05},
- {id:'mcp',label:'MCP',x:.84,y:.20,hue:274,usage:38,recent:.03,spin:-.08},
- {id:'repo',label:'Repo',x:.72,y:.75,hue:198,usage:42,recent:.03,spin:-.06},
- {id:'test',label:'Test',x:.91,y:.70,hue:167,usage:34,recent:.03,spin:-.05}
+ {id:'user',label:'User',x:.09,y:.49,hue:205,base:27,cap:13,scale:8,usage:0,recent:.03,spin:.03},
+ {id:'agent',label:'Agent',x:.42,y:.46,hue:218,base:47,cap:24,scale:20,usage:0,recent:.12,spin:.08},
+ {id:'context',label:'Context',x:.39,y:.76,hue:214,base:41,cap:37,scale:22,usage:0,recent:.04,spin:.03},
+ {id:'memory',label:'Memory',x:.19,y:.20,hue:42,base:28,cap:17,scale:6,usage:0,recent:.02,spin:.05},
+ {id:'skill',label:'Skills',x:.47,y:.15,hue:157,base:31,cap:19,scale:7,usage:0,recent:.03,spin:.07},
+ {id:'tool',label:'Tools',x:.69,y:.46,hue:245,base:37,cap:31,scale:20,usage:0,recent:.03,spin:.05},
+ {id:'mcp',label:'MCP',x:.84,y:.20,hue:274,base:31,cap:22,scale:9,usage:0,recent:.03,spin:-.08},
+ {id:'repo',label:'Repo',x:.72,y:.75,hue:198,base:35,cap:27,scale:16,usage:0,recent:.03,spin:-.06},
+ {id:'test',label:'Test',x:.91,y:.70,hue:167,base:31,cap:21,scale:11,usage:0,recent:.03,spin:-.05}
 ];
 const initialUsage=Object.fromEntries(clusters.map(c=>[c.id,c.usage]));
 function cluster(id){return clusters.find(c=>c.id===id)}
 function pos(c,w,h){return{x:c.x*w,y:c.y*h}}
-function radius(c){return 22+Math.log10(c.usage+10)*22}
+function radius(c){return c.base+c.cap*(1-Math.exp(-c.usage/c.scale))}
 function seeded(s){return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
 let particles=[],bg=[];
 
 function initParticles(){
  const r=canvas.getBoundingClientRect();particles=[];bg=[];
  clusters.forEach((c,ci)=>{
-  const rand=seeded(900+ci*97),n=120+Math.round(Math.log10(c.usage+10)*115);
+  const rand=seeded(900+ci*97),n=44+Math.round(c.base*.72);
   for(let i=0;i<n;i++)particles.push({c,a:rand()*Math.PI*2,rr:Math.pow(rand(),1.75)*(32+rand()*42),z:rand(),sz:.25+Math.pow(rand(),3)*1.9,ph:rand()*6.28});
  });
  const rand=seeded(555);
  for(let i=0;i<560;i++)bg.push({x:rand()*r.width,y:rand()*r.height,sz:.18+Math.pow(rand(),3)*1.35,a:.045+rand()*.25,h:190+rand()*75,ph:rand()*6.28});
 }
+function addMatter(c,count){const rand=seeded((c.usage*997+c.hue*17)|0);for(let i=0;i<count;i++)particles.push({c,a:rand()*Math.PI*2,rr:Math.pow(rand(),1.75)*(32+rand()*42),z:rand(),sz:.25+Math.pow(rand(),3)*1.9,ph:rand()*6.28})}
 function resize(){const r=canvas.getBoundingClientRect();DPR=Math.min(devicePixelRatio||1,2);canvas.width=r.width*DPR;canvas.height=r.height*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);initParticles()}
 addEventListener('resize',resize);
 
@@ -261,10 +262,22 @@ function updateSidebar(){
  const entries=Object.entries(toolUsage).sort((a,b)=>b[1]-a[1]);
  document.getElementById('toolList').innerHTML=entries.length?entries.map(([k,v])=>`<div class="row-mini"><span></span><span>${k}</span><span>${v}</span></div>`).join(''):'<div class="sub">waiting for calls</div>';
 }
+function eventMass(e){
+ const table={CONTEXT:5.4,MEMORY:2.4,SKILL:2.8,MCP:2.2,TOOL:1.25,SEARCH:1.65,RESULT:2.1,READ:2.5,EDIT:3.1,TEST:1.8,FAIL:1.4,PASS:1.1,USER:1.1,THINK:1.35,CALL:1.6};
+ return table[e.type]||1;
+}
+function growCluster(c,e){
+ const gain=eventMass(e),history=.45;
+ if(['CONTEXT','MEMORY','SKILL','MCP','RESULT','READ'].includes(e.type))c.load=(c.load||0)+gain;
+ else c.activity=(c.activity||0)+gain;
+ c.history=(c.history||0)+history;
+ c.usage=(c.load||0)+(c.activity||0)+(c.history||0);
+ addMatter(c,Math.max(2,Math.round(gain*2.2)));
+}
 function applyEvent(e,index){
  addPersistentEvent(e,index);
- const ef=e.effect||{},c=cluster(clusterForEvent(e)); c.usage += 55 + (e.ctx||0)*90; c.recent=Math.min(1,c.recent+.22);
- const agent=cluster('agent');agent.recent=Math.min(1,agent.recent+.13);
+ const ef=e.effect||{},c=cluster(clusterForEvent(e)); growCluster(c,e); c.recent=Math.min(1,c.recent+.22);
+ const agent=cluster('agent');if(c.id!=='agent')growCluster(agent,{type:'THINK'});agent.recent=Math.min(1,agent.recent+.13);
  if(e.type==='SKILL'&&!activeSkills.includes(e.payload.skill))activeSkills.push(e.payload.skill);
  if(e.type==='MCP'&&!activeMCP.includes(e.payload.server||'github'))activeMCP.push(e.payload.server||'github');
  if(e.type==='MEMORY'&&!memories.includes(e.payload.memory))memories.push(e.payload.memory);
@@ -290,7 +303,7 @@ function applyEvent(e,index){
 function resetState(){
  toolUsage={};ctxState={inst:0,repo:0,tools:0,memory:0};activeSkills=[];activeMCP=[];memories=[];
  satellites=[];historyEdges=[];eventNodes=[];burstFx=[];beamFx=[];returnFx=[];shockFx=[];fractureFx=[];
- clusters.forEach(c=>{c.usage=initialUsage[c.id];c.recent=.08});
+ clusters.forEach(c=>{c.usage=initialUsage[c.id];c.load=0;c.activity=0;c.history=0;c.recent=.08});
  updateSidebar();initParticles();
 }
 
