@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tracefield — Complete Agent Run</title>
+<style>
+:root{
+  --bg:#03060a;--panel:rgba(6,10,15,.84);--line:rgba(255,255,255,.075);
+  --text:#dce6f1;--muted:#718095;--faint:#4e5a6a;--green:#75d49f;
+}
+*{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{overflow:hidden}
+button{font:inherit}
+#app{height:100%;display:grid;grid-template-rows:42px 1fr 210px}
+header{display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid var(--line);background:rgba(2,4,7,.97);font-size:10px;z-index:20}
+.brand{font-size:13px;font-weight:650}.crumb{color:var(--muted)}.spacer{flex:1}
+.live{display:flex;align-items:center;gap:6px;color:#8b9aaf}.dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 9px rgba(117,212,159,.6)}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.035);color:#aeb9c7;border-radius:6px;padding:5px 8px;font-size:9px}
+.workspace{display:grid;grid-template-columns:220px 1fr 250px;min-height:0}
+aside{background:var(--panel);backdrop-filter:blur(15px);border-right:1px solid var(--line);overflow:auto}
+aside.right{border-right:0;border-left:1px solid var(--line)}
+.section{padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.05)}
+.eyebrow{font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:#5f6d80;margin-bottom:10px}
+.title{font-size:10.5px;color:#dce4ee}.sub{font-size:8.5px;color:#627084;margin-top:4px;line-height:1.5}
+.context-total{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}.context-total b{font-size:11px;font-weight:550}.context-total span{font-size:8.5px;color:#68768a}
+.metric{display:grid;grid-template-columns:1fr auto;gap:5px;margin:8px 0;font-size:9px;color:#8492a5}.metric strong{font-weight:500;color:#b8c4d1}.bar{grid-column:1/-1;height:2px;background:#161d27;border-radius:2px;overflow:hidden}.bar i{display:block;height:100%;background:#6e94c7}
+.row-mini{display:grid;grid-template-columns:7px 1fr auto;gap:7px;align-items:center;margin:7px 0;font-size:9px;color:#7c899b}.sdot{width:5px;height:5px;border-radius:50%;background:#76cfae}
+.stage{position:relative;overflow:hidden;background:#03070b}
+#field{width:100%;height:100%;display:block}
+.stage-label{position:absolute;left:12px;top:10px;font-size:8.5px;color:#5e6c80;letter-spacing:.13em;text-transform:uppercase;pointer-events:none}
+.current-card{position:absolute;left:14px;bottom:14px;width:320px;border:1px solid var(--line);border-radius:8px;background:rgba(4,8,12,.70);backdrop-filter:blur(12px);padding:9px 10px;pointer-events:none}
+.current-kicker{font-size:8px;color:#6b788b;letter-spacing:.12em;text-transform:uppercase}.current-title{font-size:10px;color:#d9e3ef;margin-top:5px}.current-detail{font:8.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:#8190a3;margin-top:5px;white-space:pre-wrap}
+.effect-legend{position:absolute;right:12px;bottom:12px;width:180px;border:1px solid var(--line);border-radius:8px;background:rgba(4,8,12,.62);backdrop-filter:blur(10px);padding:8px 9px}
+.effect-legend .eyebrow{margin-bottom:6px}.legend-row{display:grid;grid-template-columns:42px 1fr;gap:7px;font-size:8px;color:#69778a;padding:3px 0}.legend-sample{height:8px;position:relative}.legend-sample:before{content:"";position:absolute;left:0;right:4px;top:4px;height:1px;background:#7fb0e8}.legend-sample.beam:before{background:#d5b46f;box-shadow:0 0 6px rgba(213,180,111,.5)}.legend-sample.orbit:before{border-top:1px dashed #77879a;background:none}.legend-sample.burst:before{left:16px;width:7px;height:7px;top:0;border-radius:50%;background:#cbdfff;box-shadow:0 0 10px #9ec7ff}
+.badge{display:inline-block;font-size:7.5px;padding:2px 5px;border-radius:4px;margin-bottom:7px}.b-user{background:rgba(120,145,170,.14);color:#b7c7d8}.b-think{background:rgba(76,122,193,.13);color:#91baff}.b-search{background:rgba(67,126,202,.14);color:#94c3ff}.b-mcp{background:rgba(139,96,206,.14);color:#c4a9ff}.b-skill{background:rgba(60,157,126,.13);color:#88d6b8}.b-edit{background:rgba(191,98,70,.13);color:#efa488}.b-test{background:rgba(56,148,111,.13);color:#86d7b5}.b-memory{background:rgba(183,145,64,.12);color:#e5c27c}
+dl{display:grid;grid-template-columns:65px 1fr;gap:7px 9px;font-size:8.5px;margin:10px 0 0}dt{color:#596779}dd{margin:0;color:#97a5b6}
+pre{white-space:pre-wrap;word-break:break-word;font:8.3px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:#8493a5;background:#04070b;border:1px solid rgba(255,255,255,.05);padding:8px;border-radius:6px}
+.effect-file{font:8px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#718197;background:#070b11;border:1px solid rgba(255,255,255,.045);padding:7px;border-radius:5px}
+.bottom{display:grid;grid-template-columns:1fr 330px;background:#070b11;border-top:1px solid var(--line)}
+.events{padding:9px 12px;min-width:0}.event-head{height:22px;display:flex;align-items:center;justify-content:space-between}.event-head .eyebrow{margin:0}.small{font-size:8px;color:#5f6c7e}
+.rows{height:157px;overflow:auto}.event-row{display:grid;grid-template-columns:54px 56px 1fr 76px 58px;gap:7px;align-items:center;padding:5px 0;border-top:1px solid rgba(255,255,255,.03);font-size:8.5px;color:#778598;cursor:pointer}.event-row:hover,.event-row.active{background:rgba(255,255,255,.025)}.event-row.done{opacity:.92}.event-row.future{opacity:.28}
+.tag{font-size:7px;padding:2px 4px;border-radius:3px;width:max-content}
+.timeline{border-left:1px solid var(--line);padding:12px 14px}.timeline-title{font-size:8.5px;color:#617084;letter-spacing:.12em;text-transform:uppercase}
+.track{position:relative;height:24px;margin-top:16px}.track-line{position:absolute;left:0;right:0;top:10px;height:1px;background:#1b2530}.track-fill{position:absolute;left:0;top:10px;height:1px;background:#88a8ce;width:0}.tick{position:absolute;top:7px;width:6px;height:6px;border-radius:50%;background:#5b697a;transform:translateX(-50%);cursor:pointer}.tick.done{background:#91afd4}.tick.active{width:8px;height:8px;top:6px;background:#e6f1ff;box-shadow:0 0 12px rgba(185,216,251,.75)}.controls{display:flex;gap:6px;margin-top:10px}.pill{border:1px solid var(--line);background:#0b1119;border-radius:5px;color:#78869a;font-size:8px;padding:4px 6px}.pill.active{color:#d3deeb;border-color:rgba(150,180,215,.28)}
+.timeline-meta{margin-top:11px;font-size:8.3px;line-height:1.6;color:#5e6b7d}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="brand">Tracefield</div><div class="crumb">/ complete run demo</div>
+  <div class="spacer"></div>
+  <div class="live"><span class="dot"></span><span id="statusText">LIVE</span></div>
+  <div class="crumb" id="clock">00:00:00</div>
+  <button class="btn" id="playBtn">Pause</button>
+  <button class="btn" id="restartBtn">Restart</button>
+</header>
+
+<div class="workspace">
+<aside>
+  <div class="section"><div class="eyebrow">Session</div><div class="title">Fix login race condition</div><div class="sub">codex · local · main<br/>Demo run · 24 semantic events</div></div>
+  <div class="section">
+    <div class="eyebrow">Context</div>
+    <div class="context-total"><b id="ctxTotal">8.2K</b><span>/ 200K</span></div>
+    <div class="metric"><strong>Instructions</strong><span id="ctxInst">8.2K</span><div class="bar"><i id="barInst" style="width:30%"></i></div></div>
+    <div class="metric"><strong>Repository</strong><span id="ctxRepo">0</span><div class="bar"><i id="barRepo" style="width:0%"></i></div></div>
+    <div class="metric"><strong>Tool results</strong><span id="ctxTools">0</span><div class="bar"><i id="barTools" style="width:0%"></i></div></div>
+    <div class="metric"><strong>Memory</strong><span id="ctxMemory">0</span><div class="bar"><i id="barMemory" style="width:0%"></i></div></div>
+  </div>
+  <div class="section"><div class="eyebrow">Memory loaded</div><div id="memoryList"><div class="sub">none</div></div></div>
+  <div class="section"><div class="eyebrow">Skills active</div><div id="skillList"><div class="sub">none</div></div></div>
+  <div class="section"><div class="eyebrow">MCP connections</div><div id="mcpList"><div class="sub">none</div></div></div>
+  <div class="section"><div class="eyebrow">Tool usage</div><div id="toolList"><div class="sub">waiting for calls</div></div></div>
+</aside>
+
+<main class="stage">
+  <canvas id="field"></canvas>
+  <div class="stage-label">Execution field · data becomes matter</div>
+  <div class="current-card">
+    <div class="current-kicker">Current event</div>
+    <div class="current-title" id="currentTitle">User prompt</div>
+    <div class="current-detail" id="currentDetail">"Fix the login race condition. Use GitHub MCP if useful."</div>
+  </div>
+  <div class="effect-legend">
+    <div class="eyebrow">Visual grammar</div>
+    <div class="legend-row"><div class="legend-sample burst"></div><div>burst · request / search</div></div>
+    <div class="legend-row"><div class="legend-sample beam"></div><div>beam · tool / MCP call</div></div>
+    <div class="legend-row"><div class="legend-sample orbit"></div><div>spin · repeated usage</div></div>
+    <div class="legend-row"><div class="legend-sample"></div><div>flow · execution order</div></div>
+  </div>
+</main>
+
+<aside class="right">
+  <div class="section">
+    <div class="eyebrow">Event inspector</div>
+    <span class="badge b-user" id="inspectBadge">USER</span>
+    <div class="title" id="inspectTitle">User prompt</div>
+    <dl>
+      <dt>event id</dt><dd id="inspectId">evt-01</dd>
+      <dt>phase</dt><dd id="inspectPhase">input</dd>
+      <dt>duration</dt><dd id="inspectDuration">0 ms</dd>
+      <dt>context Δ</dt><dd id="inspectContext">+0.8K</dd>
+    </dl>
+  </div>
+  <div class="section"><div class="eyebrow">Payload</div><pre id="payloadBox">{ "prompt": "Fix the login race condition..." }</pre></div>
+  <div class="section"><div class="eyebrow">Visual effect mapping</div><div class="effect-file" id="effectFile">effect/user-prompt.json
+cluster: user
+effect: pulse
+massDelta: 0.8
+trail: input → think</div></div>
+</aside>
+</div>
+
+<div class="bottom">
+  <div class="events">
+    <div class="event-head"><div class="eyebrow">Event stream</div><div class="small" id="progressText">1 / 24</div></div>
+    <div class="rows" id="rows"></div>
+  </div>
+  <div class="timeline">
+    <div class="timeline-title">Replay timeline</div>
+    <div class="track" id="track"><div class="track-line"></div><div class="track-fill" id="trackFill"></div></div>
+    <div class="controls"><button class="pill" data-speed=".5">0.5×</button><button class="pill active" data-speed="1">1×</button><button class="pill" data-speed="2">2×</button><button class="pill" data-speed="4">4×</button></div>
+    <div class="timeline-meta" id="timelineMeta">Search mass grows with usage. MCP calls emit beams. Results return as particle streams. Retry branches bend back into the search field.</div>
+  </div>
+</div>
+</div>
+
+<script>
+const events = [
+ {id:'evt-01',t:0.0,type:'USER',phase:'input',title:'User prompt',detail:'Fix the login race condition. Use GitHub MCP if useful.',dur:'0 ms',ctx:.8,payload:{prompt:'Fix the login race condition. Use GitHub MCP if useful.'},effect:{file:'effects/user-prompt.json',cluster:'user',effect:'pulse'}},
+ {id:'evt-02',t:1.0,type:'THINK',phase:'reasoning',title:'AI think',detail:'Need to inspect auth flow, token refresh, and login callback ordering.',dur:'740 ms',ctx:.5,payload:{summary:'inspect auth flow and refresh ordering'},effect:{file:'effects/think-vortex.json',cluster:'think',effect:'slow-vortex'}},
+ {id:'evt-03',t:2.1,type:'SKILL',phase:'bootstrap',title:'Load skill: code-reading',detail:'Skill instructions injected into active context.',dur:'18 ms',ctx:1.1,payload:{skill:'code-reading',source:'~/.codex/skills/code-reading/SKILL.md'},effect:{file:'effects/skill-load.json',cluster:'skill',effect:'satellite-capture'}},
+ {id:'evt-04',t:3.1,type:'MCP',phase:'bootstrap',title:'Initialize GitHub MCP',detail:'Connect → initialize → capabilities.',dur:'68 ms',ctx:.2,payload:{server:'github',action:'initialize'},effect:{file:'effects/mcp-connect.json',cluster:'mcp',effect:'station-ignite'}},
+ {id:'evt-05',t:4.0,type:'MCP',phase:'bootstrap',title:'Discover MCP tools',detail:'search_code · get_file · get_pull_request · list_tree',dur:'36 ms',ctx:.6,payload:{server:'github',tools:['search_code','get_file','get_pull_request','list_tree']},effect:{file:'effects/mcp-discover.json',cluster:'mcp',effect:'orbit-spawn'}},
+ {id:'evt-06',t:5.0,type:'THINK',phase:'plan',title:'Plan search',detail:'Search local repo first, then use GitHub MCP for related implementation history.',dur:'480 ms',ctx:.3,payload:{plan:['grep auth/token/refresh','read matches','query GitHub MCP']},effect:{file:'effects/plan-ripple.json',cluster:'think',effect:'radial-ripple'}},
+ {id:'evt-07',t:6.2,type:'SEARCH',phase:'search',title:'grep auth|token|refresh',detail:'rg -n "auth|token|refresh" src/ | head -n 80',dur:'612 ms',ctx:.4,payload:{command:'rg -n "auth|token|refresh" src/ | head -n 80'},effect:{file:'effects/search-burst.json',cluster:'search',effect:'outward-burst'}},
+ {id:'evt-08',t:7.0,type:'RESULT',phase:'search',title:'Search results',detail:'1.2K matches across 38 files.',dur:'24 ms',ctx:2.1,payload:{matches:1200,files:38,top:['src/auth.ts','src/hooks/useAuth.ts','src/api/refresh.ts']},effect:{file:'effects/result-return.json',cluster:'search',effect:'particle-return'}},
+ {id:'evt-09',t:8.0,type:'READ',phase:'inspect',title:'Read src/auth.ts',detail:'Read login state transition and token write path.',dur:'18 ms',ctx:1.8,payload:{file:'src/auth.ts',lines:'1-220'},effect:{file:'effects/file-read.json',cluster:'repo',effect:'node-open'}},
+ {id:'evt-10',t:8.8,type:'READ',phase:'inspect',title:'Read src/hooks/useAuth.ts',detail:'Read refresh effect and dependency ordering.',dur:'22 ms',ctx:1.6,payload:{file:'src/hooks/useAuth.ts',lines:'1-180'},effect:{file:'effects/file-read.json',cluster:'repo',effect:'node-open'}},
+ {id:'evt-11',t:9.8,type:'THINK',phase:'reasoning',title:'Hypothesis formed',detail:'Login callback and refresh effect race on token state.',dur:'560 ms',ctx:.4,payload:{hypothesis:'callback and refresh effect race on token state'},effect:{file:'effects/hypothesis-focus.json',cluster:'think',effect:'core-focus'}},
+ {id:'evt-12',t:10.8,type:'MCP',phase:'external',title:'Call github.search_code',detail:'search_code(query="refreshToken login callback")',dur:'280 ms',ctx:.2,payload:{server:'github',tool:'search_code',args:{query:'refreshToken login callback',repo:'owner/repo',limit:25}},effect:{file:'effects/mcp-tool-beam.json',cluster:'mcp',effect:'beam-out'}},
+ {id:'evt-13',t:11.4,type:'RESULT',phase:'external',title:'MCP result',detail:'25 results returned; 3 high-signal files.',dur:'32 ms',ctx:2.4,payload:{results:25,top:['src/auth.ts','src/api/refresh.ts','src/callback/login.ts']},effect:{file:'effects/mcp-result-stream.json',cluster:'mcp',effect:'particle-stream-back'}},
+ {id:'evt-14',t:12.3,type:'CALL',phase:'tool',title:'Call function: read_file',detail:'read_file("src/callback/login.ts")',dur:'14 ms',ctx:1.4,payload:{function:'read_file',args:{path:'src/callback/login.ts'}},effect:{file:'effects/function-call.json',cluster:'tool',effect:'thin-beam'}},
+ {id:'evt-15',t:13.1,type:'EDIT',phase:'modify',title:'Apply patch',detail:'Serialize refresh completion before callback state commit.',dur:'91 ms',ctx:.8,payload:{file:'src/auth.ts',patch:'+ await refreshPromise\\n+ commitLoginState(token)'},effect:{file:'effects/edit-shockwave.json',cluster:'edit',effect:'localized-shockwave'}},
+ {id:'evt-16',t:14.0,type:'TEST',phase:'verify',title:'Run tests',detail:'npm test -- auth',dur:'2.4 s',ctx:.6,payload:{command:'npm test -- auth'},effect:{file:'effects/test-gate.json',cluster:'test',effect:'gate-charge'}},
+ {id:'evt-17',t:15.0,type:'FAIL',phase:'verify',title:'Test failed',detail:'1 failed · callback.test.ts: expected one refresh, got two.',dur:'0 ms',ctx:1.3,payload:{failed:1,file:'tests/callback.test.ts',message:'expected one refresh, got two'},effect:{file:'effects/test-fail.json',cluster:'test',effect:'red-fracture'}},
+ {id:'evt-18',t:16.0,type:'THINK',phase:'recovery',title:'AI think: retry',detail:'Patch fixed ordering but duplicate refresh remains. Trace refresh ownership.',dur:'610 ms',ctx:.4,payload:{summary:'trace duplicate refresh ownership'},effect:{file:'effects/retry-bend.json',cluster:'think',effect:'trajectory-bend-back'}},
+ {id:'evt-19',t:17.0,type:'SEARCH',phase:'search',title:'grep refresh owner',detail:'rg -n "refreshPromise|refreshToken\\(" src/ tests/',dur:'420 ms',ctx:.5,payload:{command:'rg -n "refreshPromise|refreshToken\\\\(" src/ tests/'},effect:{file:'effects/search-burst.json',cluster:'search',effect:'outward-burst'}},
+ {id:'evt-20',t:18.0,type:'READ',phase:'inspect',title:'Read src/api/refresh.ts',detail:'Find duplicate ownership in fallback refresh path.',dur:'19 ms',ctx:1.2,payload:{file:'src/api/refresh.ts',lines:'1-160'},effect:{file:'effects/file-read.json',cluster:'repo',effect:'node-open'}},
+ {id:'evt-21',t:19.0,type:'EDIT',phase:'modify',title:'Second patch',detail:'Deduplicate refresh promise and reuse in callback.',dur:'84 ms',ctx:.7,payload:{file:'src/api/refresh.ts',patch:'+ return inFlightRefresh ??= doRefresh()'},effect:{file:'effects/edit-shockwave.json',cluster:'edit',effect:'localized-shockwave'}},
+ {id:'evt-22',t:20.0,type:'TEST',phase:'verify',title:'Run tests again',detail:'npm test -- auth',dur:'2.3 s',ctx:.5,payload:{command:'npm test -- auth'},effect:{file:'effects/test-gate.json',cluster:'test',effect:'gate-charge'}},
+ {id:'evt-23',t:21.1,type:'PASS',phase:'verify',title:'Tests passed',detail:'12 passed · 0 failed.',dur:'0 ms',ctx:.3,payload:{passed:12,failed:0},effect:{file:'effects/test-pass.json',cluster:'test',effect:'green-collapse'}},
+ {id:'evt-24',t:22.0,type:'MEMORY',phase:'finalize',title:'Update memory',detail:'Store repo-specific auth refresh ownership note.',dur:'31 ms',ctx:.9,payload:{memory:'auth architecture',update:'RefreshManager owns the single in-flight refresh promise.'},effect:{file:'effects/memory-write.json',cluster:'memory',effect:'stable-orbit-write'}}
+];
+
+const typeStyle={USER:'b-user',THINK:'b-think',SKILL:'b-skill',MCP:'b-mcp',SEARCH:'b-search',RESULT:'b-search',READ:'b-user',CALL:'b-mcp',EDIT:'b-edit',TEST:'b-test',FAIL:'b-edit',PASS:'b-test',MEMORY:'b-memory'};
+const canvas=document.getElementById('field'),ctx=canvas.getContext('2d');
+let DPR=1,playing=true,speed=1,startPerf=performance.now(),elapsed=0,currentIndex=0;
+let burstFx=[],beamFx=[],returnFx=[],shockFx=[],fractureFx=[];
+let toolUsage={},ctxState={inst:8.2,repo:0,tools:0,memory:0},activeSkills=[],activeMCP=[],memories=[];
+let satellites=[],historyEdges=[],eventNodes=[];
+
+const clusters=[
+ {id:'user',label:'User',x:.12,y:.26,hue:205,usage:80,recent:.12,spin:.03},
+ {id:'think',label:'Think',x:.31,y:.30,hue:218,usage:120,recent:.18,spin:.08},
+ {id:'skill',label:'Skills',x:.51,y:.18,hue:157,usage:80,recent:.10,spin:.07},
+ {id:'search',label:'Search',x:.47,y:.49,hue:211,usage:240,recent:.20,spin:.14},
+ {id:'repo',label:'Repo',x:.26,y:.62,hue:198,usage:180,recent:.12,spin:-.06},
+ {id:'tool',label:'Tools',x:.64,y:.53,hue:245,usage:100,recent:.10,spin:.05},
+ {id:'mcp',label:'MCP',x:.78,y:.28,hue:274,usage:120,recent:.16,spin:-.08},
+ {id:'edit',label:'Edit',x:.67,y:.72,hue:24,usage:90,recent:.10,spin:.07},
+ {id:'test',label:'Test',x:.86,y:.66,hue:167,usage:90,recent:.10,spin:-.05},
+ {id:'memory',label:'Memory',x:.88,y:.18,hue:42,usage:70,recent:.06,spin:.05}
+];
+const initialUsage=Object.fromEntries(clusters.map(c=>[c.id,c.usage]));
+function cluster(id){return clusters.find(c=>c.id===id)}
+function pos(c,w,h){return{x:c.x*w,y:c.y*h}}
+function radius(c){return 22+Math.log10(c.usage+10)*22}
+function seeded(s){return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+let particles=[],bg=[];
+
+function initParticles(){
+ const r=canvas.getBoundingClientRect();particles=[];bg=[];
+ clusters.forEach((c,ci)=>{
+  const rand=seeded(900+ci*97),n=120+Math.round(Math.log10(c.usage+10)*115);
+  for(let i=0;i<n;i++)particles.push({c,a:rand()*Math.PI*2,rr:Math.pow(rand(),1.75)*(32+rand()*42),z:rand(),sz:.25+Math.pow(rand(),3)*1.9,ph:rand()*6.28});
+ });
+ const rand=seeded(555);
+ for(let i=0;i<560;i++)bg.push({x:rand()*r.width,y:rand()*r.height,sz:.18+Math.pow(rand(),3)*1.35,a:.045+rand()*.25,h:190+rand()*75,ph:rand()*6.28});
+}
+function resize(){const r=canvas.getBoundingClientRect();DPR=Math.min(devicePixelRatio||1,2);canvas.width=r.width*DPR;canvas.height=r.height*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);initParticles()}
+addEventListener('resize',resize);
+
+function clusterForEvent(e){
+ if(e.type==='USER')return'user'; if(e.type==='THINK')return'think'; if(e.type==='SKILL')return'skill';
+ if(e.type==='SEARCH'||(e.type==='RESULT'&&e.phase==='search'))return'search'; if(e.type==='READ')return'repo';
+ if(e.type==='CALL')return'tool'; if(e.type==='MCP'||(e.type==='RESULT'&&e.phase==='external'))return'mcp';
+ if(e.type==='EDIT')return'edit'; if(['TEST','FAIL','PASS'].includes(e.type))return'test'; if(e.type==='MEMORY')return'memory'; return'think';
+}
+
+function satelliteLabel(e){
+ if(e.type==='SEARCH')return e.title.replace(/^grep /,'rg ');
+ if(e.type==='READ')return e.payload.file?.split('/').pop()||e.title;
+ if(e.type==='MCP')return e.payload.tool||e.payload.action||'mcp';
+ if(e.type==='RESULT')return e.phase==='external'?`${e.payload.results||0} results`:`${e.payload.files||0} files`;
+ if(e.type==='SKILL')return e.payload.skill||'skill';
+ if(e.type==='CALL')return e.payload.function||'function';
+ if(e.type==='EDIT')return e.payload.file?.split('/').pop()||'patch';
+ if(e.type==='TEST')return 'npm test';
+ if(e.type==='FAIL')return 'failed';
+ if(e.type==='PASS')return 'passed';
+ if(e.type==='MEMORY')return e.payload.memory||'memory';
+ if(e.type==='THINK')return e.phase;
+ return e.title;
+}
+
+function addPersistentEvent(e,index){
+ const cid=clusterForEvent(e),c=cluster(cid);
+ const same=satellites.filter(s=>s.parent===cid).length;
+ const ring=1+Math.floor(same/6);
+ const slot=same%6;
+ const baseAngle=(slot/6)*Math.PI*2 + ring*.43 + (index*.17);
+ satellites.push({
+   id:e.id,parent:cid,label:satelliteLabel(e),type:e.type,index,
+   ring,baseAngle,dist:radius(c)*(1.35+ring*.46),
+   hue:c.hue,weight:Math.max(.35,Math.min(1.4,.35+(e.ctx||.2)*.22)),
+   born:performance.now(),active:true
+ });
+ eventNodes.push({eventIndex:index,cluster:cid,satelliteId:e.id});
+ const prev=eventNodes[eventNodes.length-2];
+ if(prev)historyEdges.push({from:prev,to:eventNodes[eventNodes.length-1],index,active:true});
+}
+
+function hex(n){return Math.round(n*10)/10+'K'}
+function updateSidebar(){
+ const total=ctxState.inst+ctxState.repo+ctxState.tools+ctxState.memory;
+ document.getElementById('ctxTotal').textContent=hex(total);
+ document.getElementById('ctxRepo').textContent=ctxState.repo?hex(ctxState.repo):'0';
+ document.getElementById('ctxTools').textContent=ctxState.tools?hex(ctxState.tools):'0';
+ document.getElementById('ctxMemory').textContent=ctxState.memory?hex(ctxState.memory):'0';
+ document.getElementById('barRepo').style.width=Math.min(100,ctxState.repo/12*100)+'%';
+ document.getElementById('barTools').style.width=Math.min(100,ctxState.tools/12*100)+'%';
+ document.getElementById('barMemory').style.width=Math.min(100,ctxState.memory/5*100)+'%';
+ document.getElementById('skillList').innerHTML=activeSkills.length?activeSkills.map(x=>`<div class="row-mini"><span class="sdot"></span><span>${x}</span><span>active</span></div>`).join(''):'<div class="sub">none</div>';
+ document.getElementById('mcpList').innerHTML=activeMCP.length?activeMCP.map(x=>`<div class="row-mini"><span class="sdot"></span><span>${x}</span><span>connected</span></div>`).join(''):'<div class="sub">none</div>';
+ document.getElementById('memoryList').innerHTML=memories.length?memories.map(x=>`<div class="row-mini"><span class="sdot"></span><span>${x}</span><span>loaded</span></div>`).join(''):'<div class="sub">none</div>';
+ const entries=Object.entries(toolUsage).sort((a,b)=>b[1]-a[1]);
+ document.getElementById('toolList').innerHTML=entries.length?entries.map(([k,v])=>`<div class="row-mini"><span></span><span>${k}</span><span>${v}</span></div>`).join(''):'<div class="sub">waiting for calls</div>';
+}
+function applyEvent(e,index){
+ addPersistentEvent(e,index);
+ const ef=e.effect||{},c=cluster(clusterForEvent(e)); c.usage += 55 + (e.ctx||0)*90; c.recent=Math.min(1,c.recent+.22);
+ if(e.type==='SKILL'&&!activeSkills.includes(e.payload.skill))activeSkills.push(e.payload.skill);
+ if(e.id==='evt-04'&&!activeMCP.includes('github'))activeMCP.push('github');
+ if(e.type==='MEMORY'&&!memories.includes(e.payload.memory))memories.push(e.payload.memory);
+ if(e.type==='READ'){ctxState.repo+=e.ctx;toolUsage.read_file=(toolUsage.read_file||0)+1}
+ else if(['RESULT','MCP','CALL','TEST','FAIL','PASS'].includes(e.type))ctxState.tools+=e.ctx||0;
+ else if(e.type==='MEMORY')ctxState.memory+=e.ctx||0;
+ else if(e.type==='SKILL')ctxState.inst+=e.ctx||0;
+ if(e.type==='SEARCH'){toolUsage.rg=(toolUsage.rg||0)+1;c.spin+=.05;burstFx.push({cluster:'search',born:performance.now(),dur:900,hue:211})}
+ if(e.type==='MCP'&&e.payload.tool){toolUsage['mcp.'+e.payload.tool]=(toolUsage['mcp.'+e.payload.tool]||0)+1;beamFx.push({from:'search',to:'mcp',born:performance.now(),dur:950,hue:274})}
+ if(e.type==='CALL'){toolUsage[e.payload.function]=(toolUsage[e.payload.function]||0)+1;beamFx.push({from:'tool',to:'repo',born:performance.now(),dur:850,hue:245})}
+ if(e.type==='EDIT'){toolUsage.apply_patch=(toolUsage.apply_patch||0)+1;shockFx.push({cluster:'edit',born:performance.now(),dur:1000,hue:24})}
+ if(e.type==='TEST'){toolUsage['npm test']=(toolUsage['npm test']||0)+1;shockFx.push({cluster:'test',born:performance.now(),dur:800,hue:167})}
+ if(e.type==='FAIL'){fractureFx.push({cluster:'test',born:performance.now(),dur:1300});beamFx.push({from:'test',to:'think',born:performance.now(),dur:1000,hue:8})}
+ if(e.type==='PASS')shockFx.push({cluster:'test',born:performance.now(),dur:1300,hue:158});
+ if(e.type==='RESULT')returnFx.push({from:e.phase==='external'?'mcp':'search',to:e.phase==='external'?'search':'repo',born:performance.now(),dur:1100,count:18,hue:e.phase==='external'?274:211});
+ updateSidebar();
+}
+
+function resetState(){
+ toolUsage={};ctxState={inst:8.2,repo:0,tools:0,memory:0};activeSkills=[];activeMCP=[];memories=[];
+ satellites=[];historyEdges=[];eventNodes=[];burstFx=[];beamFx=[];returnFx=[];shockFx=[];fractureFx=[];
+ clusters.forEach(c=>{c.usage=initialUsage[c.id];c.recent=.08});
+ updateSidebar();initParticles();
+}
+
+function showInspector(e){
+ document.getElementById('currentTitle').textContent=e.title;document.getElementById('currentDetail').textContent=e.detail;
+ const b=document.getElementById('inspectBadge');b.className='badge '+(typeStyle[e.type]||'b-user');b.textContent=e.type;
+ document.getElementById('inspectTitle').textContent=e.title;document.getElementById('inspectId').textContent=e.id;document.getElementById('inspectPhase').textContent=e.phase;
+ document.getElementById('inspectDuration').textContent=e.dur;document.getElementById('inspectContext').textContent='+'+e.ctx+'K';
+ document.getElementById('payloadBox').textContent=JSON.stringify(e.payload,null,2);
+ const ef=e.effect||{};document.getElementById('effectFile').textContent=ef.file+'\n'+Object.entries(ef).filter(([k])=>k!=='file').map(([k,v])=>`${k}: ${typeof v==='object'?JSON.stringify(v):v}`).join('\n');
+ document.getElementById('progressText').textContent=(currentIndex+1)+' / '+events.length;
+}
+function renderRows(){
+ const rows=document.getElementById('rows');
+ rows.innerHTML=events.map((e,i)=>`<div class="event-row ${i<currentIndex?'done':i===currentIndex?'active':'future'}" data-i="${i}">
+ <span>${String(Math.floor(e.t)).padStart(2,'0')}:${String(Math.round((e.t%1)*60)).padStart(2,'0')}</span>
+ <span class="tag ${typeStyle[e.type]||'b-user'}">${e.type}</span><span>${e.title}</span><span>${e.dur}</span><span>+${e.ctx}K</span></div>`).join('');
+ rows.querySelectorAll('.event-row').forEach(r=>r.onclick=()=>seekTo(+r.dataset.i));
+ const active=rows.querySelector('.active');if(active)active.scrollIntoView({block:'nearest'});
+}
+function renderTimeline(){
+ const tr=document.getElementById('track');tr.querySelectorAll('.tick').forEach(x=>x.remove());
+ events.forEach((e,i)=>{const d=document.createElement('div');d.className='tick '+(i<currentIndex?'done':i===currentIndex?'active':'');d.style.left=(e.t/events.at(-1).t*100)+'%';d.onclick=()=>seekTo(i);tr.appendChild(d)});
+ document.getElementById('trackFill').style.width=(events[currentIndex].t/events.at(-1).t*100)+'%';
+}
+function seekTo(i){
+ currentIndex=Math.max(0,Math.min(events.length-1,i));resetState();
+ for(let n=0;n<=currentIndex;n++)applyEvent(events[n],n);
+ elapsed=events[currentIndex].t;startPerf=performance.now()-elapsed*1000/speed;showInspector(events[currentIndex]);renderRows();renderTimeline();
+}
+
+function satellitePosition(s,w,h,now){
+ const c=cluster(s.parent),o=pos(c,w,h);
+ const usageFactor=Math.min(1.8,1+Math.log10(c.usage+10)*.08);
+ // Orbital shape changes continuously and independently per cluster
+ const warp1=.82 + Math.sin(now*.00023 + s.baseAngle*2 + c.usage*.003)*.16;
+ const warp2=.58 + Math.cos(now*.00019 + s.ring + c.usage*.002)*.11;
+ const a=s.baseAngle + now*(.000045 + c.recent*.00004)*(c.spin>=0?1:-1)*(1+s.ring*.12);
+ const dist=s.dist*usageFactor;
+ return {x:o.x+Math.cos(a)*dist*warp1,y:o.y+Math.sin(a)*dist*warp2};
+}
+function nodePosition(node,w,h,now){
+ const s=satellites.find(x=>x.id===node.satelliteId);
+ return s?satellitePosition(s,w,h,now):pos(cluster(node.cluster),w,h);
+}
+function curve(a,b,hue,alpha=.12){
+ const dx=b.x-a.x,cp1={x:a.x+dx*.35,y:a.y-40},cp2={x:a.x+dx*.67,y:b.y+38};
+ ctx.strokeStyle=`hsla(${hue},75%,72%,${alpha})`;ctx.lineWidth=.62;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.bezierCurveTo(cp1.x,cp1.y,cp2.x,cp2.y,b.x,b.y);ctx.stroke();
+}
+function drawBeam(fx,now,w,h){
+ const p=(now-fx.born)/fx.dur;if(p<0||p>1)return false;const a=pos(cluster(fx.from),w,h),b=pos(cluster(fx.to),w,h);ctx.save();ctx.globalCompositeOperation='screen';
+ for(let lw=8;lw>=1;lw-=2){ctx.lineWidth=lw;ctx.strokeStyle=`hsla(${fx.hue},90%,78%,${lw===2?.62:.032*(1-p)})`;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}ctx.restore();return true;
+}
+function drawBurst(fx,now,w,h){
+ const p=(now-fx.born)/fx.dur;if(p<0||p>1)return false;const o=pos(cluster(fx.cluster),w,h);ctx.save();ctx.globalCompositeOperation='screen';
+ for(let i=0;i<36;i++){const a=i/36*6.28,rr=12+p*(58+(i%6)*5);ctx.fillStyle=`hsla(${fx.hue},90%,76%,${(1-p)*.5})`;ctx.beginPath();ctx.arc(o.x+Math.cos(a)*rr,o.y+Math.sin(a)*rr*.62,.6+(i%3)*.25,0,6.28);ctx.fill()}ctx.restore();return true;
+}
+function drawReturn(fx,now,w,h){
+ const p=(now-fx.born)/fx.dur;if(p<0||p>1)return false;const a=pos(cluster(fx.from),w,h),b=pos(cluster(fx.to),w,h);
+ for(let i=0;i<fx.count;i++){const q=Math.max(0,Math.min(1,p*1.35-i*.022));ctx.fillStyle=`hsla(${fx.hue},90%,78%,.45)`;ctx.beginPath();ctx.arc(a.x+(b.x-a.x)*q,a.y+(b.y-a.y)*q+Math.sin(i*2.4)*9,.7+(i%3)*.25,0,6.28);ctx.fill()}return true;
+}
+function drawShock(fx,now,w,h){
+ const p=(now-fx.born)/fx.dur;if(p<0||p>1)return false;const o=pos(cluster(fx.cluster),w,h);ctx.strokeStyle=`hsla(${fx.hue},80%,75%,${(1-p)*.42})`;ctx.lineWidth=.9;ctx.beginPath();ctx.arc(o.x,o.y,12+p*70,0,6.28);ctx.stroke();return true;
+}
+function drawFracture(fx,now,w,h){
+ const p=(now-fx.born)/fx.dur;if(p<0||p>1)return false;const o=pos(cluster(fx.cluster),w,h);ctx.strokeStyle=`rgba(242,108,88,${(1-p)*.65})`;ctx.lineWidth=.75;
+ for(let i=0;i<7;i++){const a=i/7*6.28;ctx.beginPath();ctx.moveTo(o.x,o.y);ctx.lineTo(o.x+Math.cos(a)*(25+p*42),o.y+Math.sin(a)*(18+p*30));ctx.stroke()}return true;
+}
+
+function draw(now){
+ const r=canvas.getBoundingClientRect(),w=r.width,h=r.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#03070b';ctx.fillRect(0,0,w,h);
+ const vign=ctx.createRadialGradient(w*.5,h*.48,0,w*.5,h*.48,Math.max(w,h)*.76);vign.addColorStop(0,'rgba(25,43,59,.18)');vign.addColorStop(.55,'rgba(4,8,13,.03)');vign.addColorStop(1,'rgba(0,0,0,.38)');ctx.fillStyle=vign;ctx.fillRect(0,0,w,h);
+ bg.forEach(p=>{const tw=.45+.55*Math.sin(now*.001+p.ph);ctx.fillStyle=`hsla(${p.h},65%,80%,${p.a*(.55+tw*.45)})`;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,6.28);ctx.fill()});
+
+ // Historical execution trajectory: always remains visible
+ historyEdges.forEach((e,idx)=>{
+   const a=nodePosition(e.from,w,h,now),b=nodePosition(e.to,w,h,now);
+   const isRecent=idx>=historyEdges.length-4,alpha=isRecent?.18:.055;
+   curve(a,b,205+(idx*11)%90,alpha);
+ });
+
+ // Parent cluster to satellite orbits + links
+ satellites.forEach((s,idx)=>{
+   const c=cluster(s.parent),o=pos(c,w,h),p=satellitePosition(s,w,h,now);
+   ctx.strokeStyle=`hsla(${c.hue},70%,70%,${idx===satellites.length-1?.18:.055})`;ctx.lineWidth=.45;ctx.beginPath();ctx.moveTo(o.x,o.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+ });
+
+ // cluster field + orbits
+ clusters.forEach(c=>{
+   const o=pos(c,w,h),rad=radius(c)*(1+Math.sin(now*.001+c.usage)*.018);
+   const g=ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,rad*2);g.addColorStop(0,`hsla(${c.hue},85%,70%,${.072+c.recent*.034})`);g.addColorStop(.44,`hsla(${c.hue},75%,55%,.026)`);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(o.x,o.y,rad*2,0,6.28);ctx.fill();
+   ctx.save();ctx.translate(o.x,o.y);
+   const deform=.08*Math.sin(now*.00017+c.usage*.003);
+   ctx.rotate(now*.000022*c.spin*10);
+   for(let k=0;k<4;k++){
+    ctx.strokeStyle=`hsla(${c.hue},70%,70%,${.05+c.recent*.035})`;ctx.lineWidth=.5;ctx.setLineDash(k%2?[2,7]:[]);
+    ctx.beginPath();ctx.ellipse(0,0,rad*(1.02+k*.23)*(1+deform),rad*(.50+k*.11)*(1-deform*.8),k*.47,0,6.28);ctx.stroke();
+   }
+   ctx.restore();ctx.setLineDash([]);
+ });
+
+ // particles
+ ctx.save();ctx.globalCompositeOperation='screen';
+ particles.forEach(p=>{const c=p.c,o=pos(c,w,h),sp=.00010*(.6+c.recent*2.1),ang=p.a+now*sp*c.spin*5+Math.sin(now*.0004+p.ph)*.05,rr=p.rr*(radius(c)/55),x=o.x+Math.cos(ang)*rr,y=o.y+Math.sin(ang)*rr*.62,tw=.35+.65*Math.sin(now*.002+p.ph);ctx.fillStyle=`hsla(${c.hue},78%,${68+p.z*18}%,${.10+p.z*.40+tw*.09})`;ctx.beginPath();ctx.arc(x,y,p.sz*(.82+c.recent*.26),0,6.28);ctx.fill()});ctx.restore();
+
+ // Persistent satellites
+ satellites.forEach((s,idx)=>{
+   const p=satellitePosition(s,w,h,now),latest=idx===satellites.length-1,age=Math.max(0,now-s.born);
+   const pulse=latest?1+.18*Math.sin(age*.008):1;
+   const rr=(2.2+s.weight*1.7)*pulse;
+   const glow=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,latest?14:9);
+   glow.addColorStop(0,`hsla(${s.hue},85%,80%,${latest?.9:.62})`);glow.addColorStop(.28,`hsla(${s.hue},80%,68%,${latest?.24:.10})`);glow.addColorStop(1,'rgba(0,0,0,0)');
+   ctx.fillStyle=glow;ctx.beginPath();ctx.arc(p.x,p.y,latest?14:9,0,6.28);ctx.fill();
+   ctx.fillStyle=`hsla(${s.hue},80%,78%,${latest?.95:.68})`;ctx.beginPath();ctx.arc(p.x,p.y,rr,0,6.28);ctx.fill();
+   // keep labels for all executed children, but historical ones are quieter
+   ctx.textAlign='left';ctx.font='8px Inter,system-ui';ctx.fillStyle=latest?'rgba(211,225,240,.9)':'rgba(105,120,139,.56)';
+   ctx.fillText(s.label,p.x+7,p.y+3);
+ });
+
+ burstFx=burstFx.filter(f=>drawBurst(f,now,w,h));beamFx=beamFx.filter(f=>drawBeam(f,now,w,h));returnFx=returnFx.filter(f=>drawReturn(f,now,w,h));shockFx=shockFx.filter(f=>drawShock(f,now,w,h));fractureFx=fractureFx.filter(f=>drawFracture(f,now,w,h));
+
+ clusters.forEach(c=>{
+   const o=pos(c,w,h),active=clusterForEvent(events[currentIndex])===c.id,g=ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,22);
+   g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.12,`hsla(${c.hue},90%,78%,.7)`);g.addColorStop(.46,`hsla(${c.hue},80%,68%,.16)`);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(o.x,o.y,22,0,6.28);ctx.fill();
+   ctx.textAlign='center';ctx.font=`${active?'600':'500'} 10px Inter,system-ui`;ctx.fillStyle=active?'rgba(235,244,255,.96)':'rgba(205,218,232,.84)';ctx.fillText(c.label,o.x,o.y-7);
+   ctx.font='8px Inter,system-ui';ctx.fillStyle='rgba(99,115,134,.72)';ctx.fillText(Math.round(c.usage)+' mass',o.x,o.y+9);
+ });
+
+ processTimeline(now);requestAnimationFrame(draw);
+}
+
+function processTimeline(now){
+ if(!playing)return;
+ elapsed=(now-startPerf)/1000*speed;
+ let idx=events.findLastIndex(e=>e.t<=elapsed);if(idx<0)idx=0;idx=Math.min(idx,events.length-1);
+ if(idx!==currentIndex){
+  if(idx>currentIndex){for(let i=currentIndex+1;i<=idx;i++)applyEvent(events[i],i)}
+  else seekTo(idx);
+  currentIndex=idx;showInspector(events[idx]);renderRows();renderTimeline();
+ }
+ if(elapsed>=events.at(-1).t+1.5){playing=false;document.getElementById('playBtn').textContent='Replay';document.getElementById('statusText').textContent='DONE'}
+ document.getElementById('clock').textContent='00:00:'+String(Math.min(59,Math.floor(elapsed))).padStart(2,'0');
+}
+
+document.getElementById('playBtn').onclick=()=>{
+ if(!playing&&elapsed>=events.at(-1).t){seekTo(0);elapsed=0;startPerf=performance.now();playing=true;document.getElementById('playBtn').textContent='Pause';document.getElementById('statusText').textContent='LIVE';return}
+ playing=!playing;document.getElementById('playBtn').textContent=playing?'Pause':'Resume';document.getElementById('statusText').textContent=playing?'LIVE':'PAUSED';
+ if(playing)startPerf=performance.now()-elapsed*1000/speed;
+};
+document.getElementById('restartBtn').onclick=()=>{seekTo(0);elapsed=0;startPerf=performance.now();playing=true;document.getElementById('playBtn').textContent='Pause';document.getElementById('statusText').textContent='LIVE'};
+document.querySelectorAll('[data-speed]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-speed]').forEach(x=>x.classList.remove('active'));b.classList.add('active');speed=+b.dataset.speed;startPerf=performance.now()-elapsed*1000/speed});
+
+resize();resetState();currentIndex=0;applyEvent(events[0],0);showInspector(events[0]);renderRows();renderTimeline();requestAnimationFrame(draw);
+</script>
+</body>
+</html>
