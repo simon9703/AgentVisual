@@ -454,8 +454,20 @@ function adaptAgentVisualEvent(event,index){
  return {id:event.id||`eval-${index}`,t:index*1.1,type,phase,title:event.title,detail:event.detail,dur:'—',ctx:amount,payload,effect:{file:`effects/${event.kind}.json`,cluster:clusterForEvent({type,phase}),effect:eventKindsFor(type)}};
 }
 function eventKindsFor(type){return ({CONTEXT:'context-absorption',SEARCH:'outward-burst',MCP:'station-ignite',TOOL:'tool-satellite',RESULT:'particle-return',EDIT:'localized-shockwave',TEST:'gate-charge',FAIL:'red-fracture',PASS:'green-collapse',MEMORY:'stable-orbit-write',SKILL:'satellite-capture'})[type]||'slow-vortex'}
+function buildScenarioEvents(raw,scenarioId){
+ const bootstrap=new Set(['context_assembled','memory_loaded','skill_discovered','skill_loaded','mcp_connected','tool_discovered']);
+ let time=.78,parallelAt=null;
+ return raw.map(([kind,title,detail],index)=>{
+   const event=adaptAgentVisualEvent({id:`${scenarioId}-${index+1}`,kind,title,detail},index);
+   const parallel=/parallel\s+[A-Z]/i.test(detail)||/^MCP result [A-Z]$/i.test(title);
+   if(bootstrap.has(kind))event.t=.22;
+   else if(parallel){if(parallelAt===null)parallelAt=time;event.t=parallelAt}
+   else {if(parallelAt!==null){time=parallelAt+.78;parallelAt=null}event.t=time;time+=['TOOL','SEARCH','READ','EDIT'].includes(event.type)?.32:['TEST','FAIL','PASS'].includes(event.type)?.48:.52}
+   return event;
+ });
+}
 async function loadAgentVisualFixture(){
- try{const response=await fetch('/eval-scenarios.json');if(!response.ok)return;const fixture=await response.json();if(!Array.isArray(fixture.scenarios)||!fixture.scenarios.length)return;const wanted=new URLSearchParams(location.search).get('scenario')||'project-setup';const active=fixture.scenarios.find(scene=>scene.id===wanted)||fixture.scenarios[0];events=active.events.map(([kind,title,detail],index)=>adaptAgentVisualEvent({id:`${active.id}-${index+1}`,kind,title,detail},index));if(!materialScene){const nav=document.getElementById('sceneNav');nav.innerHTML=fixture.scenarios.map(scene=>`<option value="${scene.id}">${scene.label}</option>`).join('');nav.value=active.id;nav.onchange=()=>{const q=new URLSearchParams(location.search);q.set('scenario',nav.value);location.search=q.toString()}}if(materialScene){const keep={orbit:['SKILL','MCP','RESULT'],launch:['THINK','MCP','RESULT','CALL','TOOL'],burst:['SEARCH','RESULT','READ'],beam:['MCP','RESULT','CALL','TOOL'],repair:['TEST','FAIL','THINK','SEARCH','EDIT','PASS']}[materialScene]||[];events=events.filter(event=>keep.includes(event.type));events.forEach((event,index)=>event.t=index*1.1)}currentIndex=0;elapsed=0;startPerf=performance.now();resetState();applyEvent(events[0],0);showInspector(events[0]);renderRows();renderTimeline()}catch(error){console.warn('Using built-in tracefield demo',error)}
+ try{const response=await fetch('/eval-scenarios.json');if(!response.ok)return;const fixture=await response.json();if(!Array.isArray(fixture.scenarios)||!fixture.scenarios.length)return;const wanted=new URLSearchParams(location.search).get('scenario')||'project-setup';const active=fixture.scenarios.find(scene=>scene.id===wanted)||fixture.scenarios[0];events=buildScenarioEvents(active.events,active.id);if(!materialScene){const nav=document.getElementById('sceneNav');nav.innerHTML=fixture.scenarios.map(scene=>`<option value="${scene.id}">${scene.label}</option>`).join('');nav.value=active.id;nav.onchange=()=>{const q=new URLSearchParams(location.search);q.set('scenario',nav.value);location.search=q.toString()}}if(materialScene){const keep={orbit:['SKILL','MCP','RESULT'],launch:['THINK','MCP','RESULT','CALL','TOOL'],burst:['SEARCH','RESULT','READ'],beam:['MCP','RESULT','CALL','TOOL'],repair:['TEST','FAIL','THINK','SEARCH','EDIT','PASS']}[materialScene]||[];events=events.filter(event=>keep.includes(event.type));events.forEach((event,index)=>event.t=index*.42)}currentIndex=0;elapsed=0;startPerf=performance.now();resetState();applyEvent(events[0],0);showInspector(events[0]);renderRows();renderTimeline()}catch(error){console.warn('Using built-in tracefield demo',error)}
 }
 resize();resetState();currentIndex=0;applyEvent(events[0],0);showInspector(events[0]);renderRows();renderTimeline();loadAgentVisualFixture();requestAnimationFrame(draw);
 </script>
