@@ -1,3 +1,3 @@
-import { MaterialLab } from '@/components/agent-visual/material-lab';
+import { MaterialGallery } from '@/components/agent-visual/material-gallery';
 
-export default function MaterialPage() { return <MaterialLab />; }
+export default function MaterialPage() { return <MaterialGallery />; }
