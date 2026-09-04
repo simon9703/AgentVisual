@@ -5,11 +5,11 @@ import { ArrowUpRight, ChevronRight } from 'lucide-react';
 
 type Scene = { id: string; title: string; kicker: string; note: string; className: string };
 const scenes: Scene[] = [
-  { id: 'orbit', title: 'Adaptive orbit', kicker: 'PERSISTENCE / CHILD EVENTS', note: 'A field begins almost empty. Each execution adds a retained satellite and slightly warps the orbital path.', className: 'scene-orbit' },
-  { id: 'launch', title: 'Launch and confluence', kicker: 'FAN OUT / CONVERGENCE', note: 'One action splits into fast packets, then the packets slowly converge at the next semantic boundary.', className: 'scene-launch' },
-  { id: 'burst', title: 'Search burst', kicker: 'QUERY / DISCOVERY', note: 'A query expands from a dense core. Returned file fragments condense into a smaller, stable local cloud.', className: 'scene-burst' },
-  { id: 'beam', title: 'MCP request beam', kicker: 'CROSS-SYSTEM CALL', note: 'A request is a narrow high-energy beam; its result returns as a distributed stream rather than a second beam.', className: 'scene-beam' },
-  { id: 'repair', title: 'Repair wave', kicker: 'FAILURE / RETRY / SETTLING', note: 'A failed test creates a short red instability, bends the path backwards, and settles to a cool stable trace after pass.', className: 'scene-repair' },
+  { id: 'orbit', title: 'Orbit formation', kicker: 'SATELLITE / RING GROWTH', note: 'One capability world grows retained satellites and new orbital rings.', className: 'scene-orbit' },
+  { id: 'absorb', title: 'Matter absorption', kicker: 'ARRIVAL / INTEGRATION', note: 'A receiving world absorbs incoming fragments, grows denser, then settles.', className: 'scene-absorb' },
+  { id: 'halo', title: 'Halo pulse', kicker: 'CONTEXT / ACTIVATION', note: 'A single context world expands a soft halo and concentric activation rings.', className: 'scene-halo' },
+  { id: 'burst', title: 'Search burst', kicker: 'QUERY / DISCOVERY', note: 'One tools world emits a search burst and condenses results into retained matter.', className: 'scene-burst' },
+  { id: 'beam', title: 'MCP beam', kicker: 'CROSS-SYSTEM CALL', note: 'A request crosses between two worlds; the response comes back as a particle stream.', className: 'scene-beam' },
 ];
 
 export function MaterialGallery() {
