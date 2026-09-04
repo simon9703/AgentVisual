@@ -1,2 +1,3 @@
-import { ExecutionReplay } from '@/components/agent-visual/material-lab';
-export default function Home() { return <ExecutionReplay />; }
+export default function Home() {
+  return <iframe title="AgentVisual execution tracefield" src="/tracefield-reference.html" className="h-screen w-screen border-0" />;
+}
