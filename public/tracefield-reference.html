@@ -344,9 +344,9 @@ function drawFracture(fx,now,w,h){
 }
 
 function draw(now){
- const r=canvas.getBoundingClientRect(),w=r.width,h=r.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#03070b';ctx.fillRect(0,0,w,h);
+ const r=canvas.getBoundingClientRect(),w=r.width,h=r.height;ctx.fillStyle='rgba(3,7,11,.32)';ctx.fillRect(0,0,w,h);
  const vign=ctx.createRadialGradient(w*.5,h*.48,0,w*.5,h*.48,Math.max(w,h)*.76);vign.addColorStop(0,'rgba(25,43,59,.18)');vign.addColorStop(.55,'rgba(4,8,13,.03)');vign.addColorStop(1,'rgba(0,0,0,.38)');ctx.fillStyle=vign;ctx.fillRect(0,0,w,h);
- bg.forEach(p=>{const tw=.45+.55*Math.sin(now*.001+p.ph);ctx.fillStyle=`hsla(${p.h},65%,80%,${p.a*(.55+tw*.45)})`;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,6.28);ctx.fill()});
+ bg.forEach(p=>{const tw=.45+.55*Math.sin(now*.001+p.ph);ctx.fillStyle=`hsla(${p.h},65%,80%,${p.a*(.55+tw*.45)})`;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,6.28);ctx.fill()});ctx.save();ctx.translate(w*.5,h*.52);ctx.scale(1.24,1.24);ctx.translate(-w*.5,-h*.52);
 
  // Historical execution trajectory: always remains visible
  historyEdges.forEach((e,idx)=>{
@@ -402,7 +402,7 @@ function draw(now){
    ctx.font='8px Inter,system-ui';ctx.fillStyle='rgba(99,115,134,.72)';ctx.fillText(Math.round(c.usage)+' mass',o.x,o.y+9);
  });
 
- processTimeline(now);requestAnimationFrame(draw);
+ ctx.restore();processTimeline(now);requestAnimationFrame(draw);
 }
 
 function processTimeline(now){
